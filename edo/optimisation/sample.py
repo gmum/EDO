@@ -29,7 +29,7 @@ def make_samples(samples, feature_values, shap_values, smiles_order, origin, cla
 
 class Sample(object):
     """
-    Sample that can be optimised (ex. a molecule)
+    Sample that can be optimised (e.x. a molecule)
 
     feature_values: np.array (1 dimension)
         feature values, this is what will be optimised

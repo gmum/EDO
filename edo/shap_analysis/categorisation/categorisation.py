@@ -1,6 +1,5 @@
 from ... import Task, TASK_ERROR_MSG
 from .high_impact import high_impact as _high_impact
-from .selectively_important import selectively_important as _selectively_important
 from .unimportant import unimportant as _unimportant
 from .well_separated import two_way_separation, three_way_separation
 
@@ -27,12 +26,7 @@ def high_impact(feature_values, shap_values, task, gamma, metric):
     func = _high_impact
     return _calculate(feature_values, shap_values,
                       func, {'gamma':gamma, 'metric':metric}, task)
-    
 
-def selectively_important(feature_values, shap_values, task, miu, metric):
-    func = _selectively_important
-    return _calculate(feature_values, shap_values,
-                      func, {'miu':miu, 'metric':metric}, task)
 
 
 def unimportant(feature_values, shap_values, task, miu, metric):

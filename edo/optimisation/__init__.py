@@ -84,9 +84,9 @@ def optimise(sample, rule, skip_criterion_check=False, update_shap=None, extende
 # # # H O W   T O   U S E # # #
 # # # # # # # # # # # # # # # #
 #
-# from metstab_pred.src import make_origin
-# from metstab_pred.src.optimisation.sample import make_samples
-# from metstab_pred.src.shap_analysis.feature import make_features
+# from edo import make_origin
+# from edo.optimisation.sample import make_samples
+# from edo.shap_analysis.feature import make_features
 #
 # # load stuff
 # task = Task.CLASSIFICATION

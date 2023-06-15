@@ -30,7 +30,7 @@ class Relation(object):
     # @abstractmethod
     def __str__(self, x=None):
         # ex. 'x < 3' (if x is None it should be overwritten with 'x')
-        # TODO: ta funkcja powinna być pusta? To jest abstract method. Dlaczego mogę to wołać?
+        # TODO: ...
         return f"{'x' if x is None else x} {self.relation.__qualname__} {self.ref_val}"
         pass
 

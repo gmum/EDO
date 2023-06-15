@@ -11,11 +11,10 @@ class Region(namedtuple('Region', ['majority', 'purity', 'n_correct', 'indices',
 
 SeparationResult = namedtuple('SeparationResult', ['score', 'thresholds', 'regions', 'params'])
 HighImpactResult = namedtuple('HighImpactResult', ['score', 'loss_region', 'gain_region', 'params'])
-SelectivelyImportantResult = namedtuple('SelectivelyImportantResult', ['score', 'loss_region', 'gain_region', 'overall', 'params'])
 UnimportantResult = namedtuple('UnimportantResult', ['score', 'params'])
 RandomRule = namedtuple('RandomRule', [])  # for rules derived randomly
 
-from .categorisation import well_separated, high_impact, selectively_important, unimportant
+from .categorisation import well_separated, high_impact, unimportant
 
 
 def result_as_dict(result):

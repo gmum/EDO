@@ -96,15 +96,9 @@ def load_model(results_dir, origin, check_unlogging=True):
 
     # load model
     model_fname = usv([pkl for pkl in os.listdir(mldir) if 'model.pickle' in pkl])
-    evaluation_model = find_and_load(mldir, model_fname, protocol='pickle')
+    evaluation_model = find_and_load(mldir, model_fname, protocol='pickle')  # evaluate optimisation procedure
+    shap_model = SHAPCalculator(shapdir, mldir, origin, check_unlogging)     # calculate SHAP values
 
-    # _, _, _, _, model_path = get_configs_and_model(mldir)
-    # evaluation_model = find_and_load(mldir, osp.basename(model_path), protocol='pickle')
-
-    shap_model = SHAPCalculator(shapdir, mldir, origin, check_unlogging)
-
-    # evaluation_model - to check if samples are optimised, this was used to calculate MSE
-    # shap_model - to calculate new SHAP values (if needed)
     return evaluation_model, shap_model
 
 

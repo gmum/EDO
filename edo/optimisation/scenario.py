@@ -7,7 +7,6 @@ from . import get_random_generator
 
 
 def optimise(samples, rules, at_once=1, n_times=1, update_shap=None,
-             # basic scenario
              skip_criterion_check=False, extended_history=False):
     # związek ma w sumie zaaplikowanych at_once * n_times reguł
     # SHAPy są liczone n_times razy (jeśli są liczone)

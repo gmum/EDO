@@ -9,7 +9,6 @@ from .utils import get_predictions_before_after, _get_pred_single_sample
 
 
 def optimisation_stats(features, rules, samples, samples_for_evaluation, print_func=None):
-    # old opis_eksperymentu
     # statistics of optimisation procedure
     # features - indices of features that were used
     # rules - rules that were used
@@ -35,7 +34,6 @@ def optimisation_stats(features, rules, samples, samples_for_evaluation, print_f
 
 
 def rule_stats(rules, print_func=None):
-    # old rule_desc
     # statistics on rules used for optimisation
     n_rules = len(rules)
     ws_rules = len([r for r in rules if isinstance(r.derivation[0], SeparationResult)])
@@ -85,7 +83,6 @@ def mean_number_of_applied_rules(samples):
 
 
 def evaluate_optimisation(samples, model, task, print_func=None):
-    # old evaluate
     # how effective was optimisation
     if len(samples)==0:
         if task == Task.CLASSIFICATION:

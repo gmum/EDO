@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from .categorisation import well_separated, high_impact, selectively_important, unimportant
+from .categorisation import well_separated, high_impact, unimportant
 from ._check import validate_task
 from .._check import validate_shapes, validate_index
 from .. import make_origin, Task, deduce_task, TASK_ERROR_MSG
@@ -68,9 +68,7 @@ class Feature(object):
         self._task = task
         self._nsamples = self._feature_values.shape[0]
 
-        # # BELOW ARE CACHE PROPERTIES - THEY ARE FILLED WITH CONTENT
-        # # WHEN THE CONTENT IS CALCULATED
-
+        # # BELOW ARE CACHE PROPERTIES - THEY ARE FILLED WITH CONTENT WHEN THE CONTENT IS CALCULATED
         # categorisation cache
         self._well_separated = defaultdict(dict)  # {n_way: {min_purity: [SeparationResult,...]}}
         self._high_impact = defaultdict(dict)  # {metric: {gamma: [HighImpactResult,...]}}
@@ -120,14 +118,6 @@ class Feature(object):
         finally:
             return self._high_impact[metric][gamma]
 
-    def selectively_important(self, miu, metric):
-        try:
-            return self._selectively_important[metric][miu]
-        except KeyError:
-            self._selectively_important[metric][miu] = selectively_important(self._feature_values, self._shap_values,
-                                                                             self._task, miu, metric)
-        finally:
-            return self._selectively_important[metric][miu]
 
     def unimportant(self, miu, metric):
         try:

@@ -58,13 +58,7 @@ def derive_high_impact_rules(ftr, params, task):
             ref_val = cls_info.params['gamma']
             loss_reg, gain_reg = cls_info.loss_region, cls_info.gain_region
             if loss_reg.majority == gain_reg.majority:
-                continue  # wersja uproszczona, nie bawimy się w to
-            # poniższe zakomentowuję, bo włącza się, gdy choć jeden region jest 'inpure'
-            # - jak rzeczywiście jest inpure, to możemy go zignorować i patrzeć tylko na ten drugi
-            # - jeżeli jest pusty, to piszemy, że majority = (0, 1), a w sumie pusty nam nie przeszkadza
-            ## elif len(loss_reg.majority) + len(gain_reg.majority) > 2:
-            ## równa liczba sampli w którymś regionie, majority = (0, 1)
-            ## continue  # wersja uproszczona, nie bawimy się w to
+                continue
             elif loss_reg.majority == (0,) or gain_reg.majority == (1,):
                 setup = [('add', Goal.MAXIMISATION, operator.lt, ref_val),
                          ('remove', Goal.MINIMISATION, operator.gt, -ref_val)]

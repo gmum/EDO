@@ -21,28 +21,7 @@ tanimoto_threshold = 0.3
 # # # # # # # # # # # # # # # #
 
 
-def default_preprocessing(model_path, shap_path):
-    # TODO: szybko sklepane do testow, trzeba przemyslec i przetestowac!
-    data_cfg, repr_cfg, task_cfg, model_cfg, model_pickle = get_configs_and_model(model_path)
-    x_train, x_test, smiles_train, smiles_test = load_ml_files(model_path)
-    task = Task(task_cfg[utils_section]['task'])
-    shap_cfg, smiles_order, X_full, morgan_repr, true_ys, preds, classes_order, expected_values, shap_values, background_data = load_shap_files(shap_path, task)
 
-    # dataframe jest potrzebny, żeby cechy miały stałe nazwy nawet jak po nich filtrujemy
-    X_full_df = pd.DataFrame(X_full, columns=list(range(X_full.shape[1])), index=smiles_order)
-    
-    smiles_true_predicted_df = get_smiles_true_predicted(smiles_order, true_ys, preds, task, classes_order)
-
-    my_feats = get_present_features(x_train, 0.1)
-    smis_correct = get_smiles_correct(smiles_true_predicted_df, task, task_cfg, data_cfg, classes_order)
-    # wybieranie smilesów na podstawie kolejnych kryteriów
-    # my_smis = intersection(smis_1, smis_2, ...)
-    my_smis = smis_correct
-
-    to_analyse_X, to_analyse_df, to_analyse_shaps, smi_order, mol_indices, feature_order = filter_samples(my_smis, my_feats, X_full, shap_values, task, smiles_order)
-    
-    return to_analyse_X, to_analyse_df, to_analyse_shaps, smi_order, mol_indices, feature_order, classes_order, task
-    
 
 def get_smiles_true_predicted(smiles_order, true_ys, preds, task, classes_order):
     d = {}
@@ -98,30 +77,6 @@ def get_smiles_correct(smiles_true_predicted_df, task, task_cfg, data_cfg, class
     return set(correct.index)
 
 
-def get_smiles_stability_value(smiles_true_predicted_df, data_cfg, task_cfg):
-    # returns three sets of smiles depending on the molecule's true class
-    stability = deepcopy(smiles_true_predicted_df)
-    
-    if data_cfg[csv_section]['scale'] is None:
-        log_scale = False
-    elif 'log' == data_cfg[csv_section]['scale']:
-        log_scale = True
-    else:
-        raise NotImplementedError(f"scale {data_cfg[csv_section]['scale']} is not implemented.")
-
-    stability['true_class'] = stability.apply(lambda row: task_cfg[utils_section]['cutoffs'](float(row.true), log_scale=log_scale), axis=1)
-    
-    low = stability[stability.true_class==0]
-    med = stability[stability.true_class==1]
-    high = stability[stability.true_class==2]
-    
-    return set(low.index), set(med.index), set(high.index)
-
-
-def get_smiles_train_test(smiles_train, smiles_test):
-    return set(smiles_train), set(smiles_test)
-
-
 def get_present_features(x_train, threshold):
     """
     this returns indices of features that are present and absent
@@ -141,24 +96,3 @@ def get_present_features(x_train, threshold):
     
     return sorted(list(set(np.array(range(len(satisfied)))[satisfied])))
 
-
-def filter_samples(mol_filter, feature_filter, X_full, shap_values, task, smiles_order):  
-    # ordering is important
-    if isinstance(mol_filter, set):
-        mol_filter = list(mol_filter)  
-    if isinstance(feature_filter, set):
-        feature_filter = list(feature_filter)
-    
-    mol_indices = index_of_smiles(smiles_order, mol_filter)
-    
-    filtered_X = X_full[mol_indices][:, feature_filter]
-    filtered_df = pd.DataFrame(filtered_X, columns=feature_filter, index=mol_filter)
-
-    if task == Task.CLASSIFICATION:
-        filtered_shaps = shap_values[:, mol_indices][:,:,feature_filter]
-    elif task == Task.REGRESSION:
-        filtered_shaps = shap_values[mol_indices][:,feature_filter]
-    else:
-        raise ValueError(TASK_ERROR_MSG(task))
-        
-    return filtered_X, filtered_df, filtered_shaps, mol_filter, mol_indices, feature_filter

@@ -1,5 +1,4 @@
 import numpy as np
-from functools import reduce
 from . import SeparationResult, Region
 from .utils import n_zeros_ones, purity, majority
 
