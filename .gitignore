@@ -1,0 +1,25 @@
+.idea/
+data/
+data
+
+archive/
+
+results*/
+screenlog*
+
+test-sv/
+fast_paper/results_while_writting/
+
+# results
+*.pdf
+*.err
+*.out
+
+# IPython Notebook
+.ipynb_checkpoints
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
