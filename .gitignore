@@ -16,6 +16,7 @@ fast_paper/results_while_writting/
 *.out
 
 # IPython Notebook
+*.ipynb
 .ipynb_checkpoints
 
 # Byte-compiled / optimized / DLL files
