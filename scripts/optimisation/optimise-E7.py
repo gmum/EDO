@@ -6,29 +6,28 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from useful.utils import make_directory
 
-from metstab_pred.src import make_origin, Task
-from metstab_pred.src.savingutils import save_as_json, get_timestamp, LoggerWrapper
+from edo import make_origin, Task
+from edo.savingutils import make_directory, save_as_json, get_timestamp, LoggerWrapper
 
-from metstab_pred.src.shap_analysis.preprocessing import get_present_features
-from metstab_pred.src.shap_analysis.utils import index_of_smiles
+from edo.shap_analysis.preprocessing import get_present_features
+from edo.shap_analysis.utils import index_of_smiles
 
-from metstab_pred.src.optimisation import Goal, set_seed, get_random_generator
+from edo.optimisation import Goal, set_seed, get_random_generator
 
-from metstab_pred.src.optimisation.utils import find_experiment, load_train_test, load_predictions, load_shap_files, load_model
-from metstab_pred.src.optimisation.utils import filter_correct_predictions_only, group_samples, intersection_list
-from metstab_pred.src.optimisation.filter_rules import condition_well_separated, condition_high_impact
+from edo.optimisation.utils import find_experiment, load_train_test, load_predictions, load_shap_files, load_model
+from edo.optimisation.utils import filter_correct_predictions_only, group_samples, intersection_list
+from edo.optimisation.filter_rules import condition_well_separated, condition_high_impact
 
-from metstab_pred.src.shap_analysis.feature import make_features
-from metstab_pred.src.optimisation.generate_rules import derive_well_separated_two_way_rules, derive_high_impact_rules
-from metstab_pred.src.optimisation.generate_rules import derive_random_rules_sample
-from metstab_pred.src.optimisation.filter_rules import filter_rules, filter_out_unimportant
-from metstab_pred.src.optimisation.filter_rules import filter_contradictive_soft, rebel_rules_stats
-from metstab_pred.src.optimisation.sample import make_samples
-from metstab_pred.src.optimisation.scenario import optimise
+from edo.shap_analysis.feature import make_features
+from edo.optimisation.generate_rules import derive_well_separated_two_way_rules, derive_high_impact_rules
+from edo.optimisation.generate_rules import derive_random_rules_sample
+from edo.optimisation.filter_rules import filter_rules, filter_out_unimportant
+from edo.optimisation.filter_rules import filter_contradictive_soft, rebel_rules_stats
+from edo.optimisation.sample import make_samples
+from edo.optimisation.scenario import optimise
 
-from metstab_pred.src.optimisation.evaluation import rule_stats, optimisation_stats, evaluate_optimisation, evaluate_history
+from edo.optimisation.evaluation import rule_stats, optimisation_stats, evaluate_optimisation, evaluate_history
 
 """
 Zamiast generowac reguly dla kazdej grupy osobno, wygenerujmy jeden zestaw regul dla wszystkich zwiazkow.

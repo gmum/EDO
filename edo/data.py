@@ -1,4 +1,3 @@
-# code from gmum/MLinPL2019_cheminfo_workshops and gmum/geo-gcn
 import os
 import os.path as osp
 from functools import lru_cache
@@ -152,6 +151,7 @@ def padel_assert(pattern_hash, pattern_filepath):
     m = hashlib.md5()
     m.update(desc_file_content.encode('utf-8'))
     assert m.hexdigest() == pattern_hash, f"File {pattern_filepath} has improper content."
+    return
 
 
 def padel_calculate(smi, padel_kwargs):
@@ -167,6 +167,7 @@ def padel_calculate(smi, padel_kwargs):
         return fp
 
 
+@lru_cache(maxsize=None)
 def padel_1D2D(smi):
     """"calculate PaDEL 1D&2D descriptor of smi"""
     pattern_filepath = osp.join(osp.dirname(osp.realpath(__file__)), 'descriptors_padelfp.xml')
@@ -178,6 +179,7 @@ def padel_1D2D(smi):
     return fp
 
 
+@lru_cache(maxsize=None)
 def pubfp(smi):
     """"calculate PubChem fingerprint of smi"""
     pattern_filepath = osp.join(osp.dirname(osp.realpath(__file__)), 'descriptors_pubfp.xml')
@@ -186,6 +188,7 @@ def pubfp(smi):
     
     fp = padel_calculate(smi, {'fingerprints': True, 'descriptortypes': pattern_filepath})
     return fp
+
 
 @lru_cache(maxsize=None)
 def krfp(smi):

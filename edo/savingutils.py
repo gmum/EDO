@@ -5,6 +5,7 @@ import json
 import pickle
 import shutil
 import logging
+import os.path as osp
 import numpy as np
 
 from requests.exceptions import HTTPError
@@ -12,6 +13,13 @@ from requests.exceptions import HTTPError
 
 def get_timestamp():
     return time.strftime('%Y-%m-%d_%H-%M')
+
+
+def make_directory(where, dname):
+    try:
+        os.makedirs(osp.join(where, dname))
+    except FileExistsError:
+        pass
 
 
 def save_predictions(x, y, cv_split, test_x, test_y, smiles, test_smiles, model, saving_dir):
@@ -24,7 +32,7 @@ def save_predictions(x, y, cv_split, test_x, test_y, smiles, test_smiles, model,
             os.makedirs(saving_dir)
         except FileExistsError:
             pass
-        with open(os.path.join(saving_dir, f"{timestamp}-{filename}"), 'w') as fid:
+        with open(osp.join(saving_dir, f"{timestamp}-{filename}"), 'w') as fid:
             fid.write('smiles\ttrue\tpredicted\tclass_probabilities\n')
             for sm, true, pred, proba in zip(smiles, true_label, predicted_label, predicted_probabilities):
                 fid.write(f"{sm}\t{true}\t{pred}\t{proba}\n")
@@ -50,7 +58,7 @@ def save_predictions(x, y, cv_split, test_x, test_y, smiles, test_smiles, model,
     _save_to_file(test_smiles, test_y, predicted, proba, f'test.predictions')
 
 
-def save_as_json(obj, saving_dir, filename, nexp=None):
+def save_as_json(obj, saving_dir, filename):
     # saves with json but uses a timestamp
     ## nexp = optional neptune experiment
     timestamp = get_timestamp()
@@ -59,43 +67,31 @@ def save_as_json(obj, saving_dir, filename, nexp=None):
             if isinstance(obj[key], np.ndarray):
                 obj[key] = obj[key].tolist()
 
-    with open(os.path.join(saving_dir, f'{timestamp}-{filename}'), 'w') as f:
+    with open(osp.join(saving_dir, f'{timestamp}-{filename}'), 'w') as f:
         json.dump(obj, f, indent=2)
 
-    if nexp:
-        try:
-            nexp.log_artifact(os.path.join(saving_dir, f'{timestamp}-{filename}'))
-        except HTTPError:
-            print(f"{filename} saved locally but not sent to neptune.")
+    return
 
 
 def save_configs(cfgs_list, directory):
     # stores config files in the experiment dir
     timestamp = get_timestamp()
     for config_file in cfgs_list:
-        filename = f"{timestamp}-{os.path.basename(config_file)}"
-        shutil.copyfile(config_file, os.path.join(directory, filename))
+        filename = f"{timestamp}-{osp.basename(config_file)}"
+        shutil.copyfile(config_file, osp.join(directory, filename))
 
 
-def pickle_and_log_artifact(obj, saving_dir, filename, nexp=None):
+def pickle_and_log_artifact(obj, saving_dir, filename):
     timestamp = get_timestamp()
-    with open(os.path.join(saving_dir, f'{timestamp}-{filename}.pickle'), 'wb') as f:
+    with open(osp.join(saving_dir, f'{timestamp}-{filename}.pickle'), 'wb') as f:
         pickle.dump(obj, f, protocol=4)
-    if nexp is not None:
-        try:
-            nexp.log_artifact(os.path.join(saving_dir, f'{timestamp}-{filename}.pickle'))
-        except HTTPError:
-            print(f"{filename} saved locally but not sent to neptune.")
+    return
 
 
-def save_npy_and_log_artifact(obj, saving_dir, filename, allow_pickle, nexp=None):
+def save_npy_and_log_artifact(obj, saving_dir, filename, allow_pickle):
     timestamp = get_timestamp()
-    np.save(os.path.join(saving_dir, f'{timestamp}-{filename}.npy'), obj, allow_pickle=allow_pickle)
-    if nexp is not None:
-        try:
-            nexp.log_artifact(os.path.join(saving_dir, f'{timestamp}-{filename}.npy'))
-        except HTTPError:
-            print(f"{filename} saved locally but not sent to neptune.")
+    np.save(osp.join(saving_dir, f'{timestamp}-{filename}.npy'), obj, allow_pickle=allow_pickle)
+    return
 
 
 class LoggerWrapper:
@@ -111,7 +107,7 @@ class LoggerWrapper:
 
         # create the log file
         timestamp = time.strftime('%Y-%m-%d_%H-%M-%S')
-        self.filename = os.path.join(path, f'{timestamp}.log')
+        self.filename = osp.join(path, f'{timestamp}.log')
         try:
             os.mknod(self.filename)
         except FileExistsError:

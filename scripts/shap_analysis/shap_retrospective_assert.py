@@ -3,7 +3,7 @@ import sys
 import os.path as osp
 import numpy as np
 
-from metstab_pred.src.utils import find_and_load
+from edo.utils import find_and_load
 
 def natural_sort_key_giver(s):
     return int(s.split('_')[-1].split('.')[0])
@@ -28,7 +28,6 @@ for heree in [h for h in os.listdir(res_dir) if osp.isdir(osp.join(res_dir, h))]
         X_full = find_and_load(here, 'X_full')
         smiles = find_and_load(here, 'smiles.npy')
         ys = find_and_load(here, 'true_ys')
-        # predictions = find_and_load(here, 'predictions')
         shaps_full = find_and_load(here, 'SHAP_values.npy')
     except IndexError:
         print(f"{heree} not a results directory?")
@@ -55,16 +54,9 @@ for heree in [h for h in os.listdir(res_dir) if osp.isdir(osp.join(res_dir, h))]
         print(f"{osp.basename(here)} was not divided.")
         continue
 
-    # print(f"X_full {X_full.shape}")
-    # print(f"smiles {smiles.shape}")
-    # print(f"predictions {predictions.shape}")
-    # print(f"shaps_full {shaps_full.shape}")
-    # print(f"X_from_parts {X_from_parts.shape}")
-    # print(f"shap_from_parts {shap_from_parts.shape}")
 
     assert X_full.shape[0] == smiles.shape[0]       # z tym nie powinno być problemu
     assert X_full.shape[0] == ys.shape[0]           # z tym nie powinno być problemu
-    # assert X_full.shape[0] == predictions.shape[0]  # z tym nie powinno być problemu
     assert np.all(X_full == X_from_parts)           # to jest sprawdzane w merge
     assert X_full.shape[0] == shaps_full.shape[-2]   
     assert np.all(shap_from_parts == shaps_full)    # z tym nie powinno być problemu

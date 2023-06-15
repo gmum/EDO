@@ -1,11 +1,10 @@
 import os
 import sys
-import logging
 
 import numpy as np
 
-from metstab_pred.src.utils import find_and_load
-from metstab_pred.src.savingutils import save_as_json, pickle_and_log_artifact, save_npy_and_log_artifact, LoggerWrapper
+from edo.utils import find_and_load
+from edo.savingutils import save_npy_and_log_artifact, LoggerWrapper
 
 
 n_args = 1 + 1
@@ -38,7 +37,7 @@ if __name__=='__main__':
     arrays = [np.load(f, allow_pickle=False) for f in files]
     for i in range(len(arrays)):
         assert np.all(arrays[0] == arrays[i]), f"Expected values 0 are not equal to expected values {i}."
-    save_npy_and_log_artifact(arrays[0], work_dir, 'expected_values', allow_pickle=False, nexp=None)
+    save_npy_and_log_artifact(arrays[0], work_dir, 'expected_values', allow_pickle=False)
 
     # concatenating shap values and saving
     files = sorted([os.path.join(work_dir, f) for f in os.listdir(work_dir) if 'SHAP_values_part_' in f], key=sorting_func)
@@ -49,4 +48,4 @@ if __name__=='__main__':
     else:
         # regression
         shap_vals_from_parts = np.concatenate(arrays, axis=0)
-    save_npy_and_log_artifact(shap_vals_from_parts, work_dir, 'SHAP_values', allow_pickle=False, nexp=None)
+    save_npy_and_log_artifact(shap_vals_from_parts, work_dir, 'SHAP_values', allow_pickle=False)
