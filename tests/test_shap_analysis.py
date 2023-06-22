@@ -7,22 +7,21 @@ import pandas as pd
 
 from tqdm import tqdm
 
-from metstab_pred.src import Task, TASK_ERROR_MSG
-from metstab_pred.src.utils import get_configs_and_model
-from metstab_pred.src.config import utils_section, csv_section
-from metstab_pred.src.data import unlog_stability
+from edo import Task, TASK_ERROR_MSG
+from edo.utils import get_configs_and_model
+from edo.config import utils_section, csv_section
+from edo.data import unlog_stability
 
-from metstab_pred.src.shap_analysis import Category
-from metstab_pred.src.shap_analysis.utils import load_shap_files, load_ml_files
-from metstab_pred.src.shap_analysis.preprocessing import get_smiles_true_predicted, get_smiles_correct
-from metstab_pred.src.shap_analysis.preprocessing import get_smiles_stability_value, get_smiles_train_test
-from metstab_pred.src.shap_analysis.preprocessing import get_present_features, filter_samples
-from metstab_pred.src.shap_analysis.preprocessing import e, enough
+from edo.shap_analysis import Category
+from edo.shap_analysis.utils import load_shap_files, load_ml_files
+from edo.shap_analysis.preprocessing import get_smiles_true_predicted, get_smiles_correct, get_smiles_stability_value
+from edo.shap_analysis.preprocessing import get_present_features, filter_samples
+from edo.shap_analysis.preprocessing import e, enough
 
-from metstab_pred.src.shap_analysis.analyses import find_optimal_separation_point, situation_at_threshold
-from metstab_pred.src.shap_analysis.categorisation import well_separated
-from metstab_pred.src.shap_analysis.categorisation.utils import purity
-from metstab_pred.src.shap_analysis.categorisation.test_separation_point import find_optimal_separation_point as kfind, SeparationType
+from edo.shap_analysis.analyses import find_optimal_separation_point, situation_at_threshold
+from edo.shap_analysis.categorisation import well_separated
+from edo.shap_analysis.categorisation.utils import purity
+from edo.shap_analysis.categorisation.test_separation_point import find_optimal_separation_point as kfind, SeparationType
 
 
 def test_get_smiles_true_predicted(smiles_order, true_ys, preds, task, classes_order):
@@ -80,7 +79,7 @@ def test_get_smiles_correct(smiles_true_predicted_df, task, task_cfg, data_cfg, 
 
 def test_get_smiles_stability_value(smiles_true_predicted_df, data_cfg, task_cfg):
     low, med, high = get_smiles_stability_value(smiles_true_predicted_df, data_cfg, task_cfg)
-    
+
     if data_cfg[csv_section]['scale'] != 'log':
         raise NotImplementedError
     log_scale = True
@@ -118,9 +117,9 @@ def test_get_present_features(x_train, threshold):
 
 def test_filter_samples(my_smis, my_feats, X_full, X_full_df, shap_values, task, smiles_order):
     to_analyse_X, to_analyse_df, to_analyse_shaps, smi_order, mol_indices, feature_order = filter_samples(my_smis, my_feats, X_full, shap_values, task, smiles_order)
-    
+
     assert np.all(smiles_order[mol_indices] == smi_order)
-    
+
     # shape
     assert np.all(to_analyse_X.shape[-2:] == (len(my_smis), len(my_feats)))
     assert set(to_analyse_df.columns) == set(my_feats)
@@ -134,7 +133,7 @@ def test_filter_samples(my_smis, my_feats, X_full, X_full_df, shap_values, task,
 
     for smi, f in zip(to_analyse_df.index, to_analyse_df.columns):
         assert to_analyse_df.loc[smi, f] == X_full_df.loc[smi, f], f"feature {f}\t{smi}"
-    
+
     # shap values correctness
     if task == Task.CLASSIFICATION:
         for i in range(shap_values.shape[0]):
@@ -156,7 +155,7 @@ def test_find_separation_point_analyses(shap_values, X_full, feature_order, task
         classes = (None, )
     else:
         raise ValueError(TASK_ERROR_MSG(task))
-    
+
     for class_idx in classes:
         for i in feature_order:
             max_correct, purity, best_thresholds = find_optimal_separation_point(shap_values, X_full, feature_order,

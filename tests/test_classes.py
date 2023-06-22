@@ -2,25 +2,22 @@ import unittest
 
 import numpy as np
 
-from metstab_pred.src import make_origin, Task, TASK_ERROR_MSG
-from metstab_pred.src.data import cutoffs_metstabon
-from metstab_pred.src.shap_analysis.utils import index_of_smiles
-from metstab_pred.src.shap_analysis.feature import make_features
-from metstab_pred.src.shap_analysis.preprocessing import get_present_features
-from metstab_pred.src.shap_analysis.categorisation import SeparationResult, HighImpactResult, RandomRule
-from metstab_pred.src.optimisation import Goal
-from metstab_pred.src.optimisation.utils import load_train_test, load_shap_files, load_predictions, load_model
-from metstab_pred.src.optimisation.utils import find_experiment
-from metstab_pred.src.optimisation.generate_rules import derive_well_separated_two_way_rules, derive_high_impact_rules
-from metstab_pred.src.optimisation.generate_rules import derive_random_rules_sample
-from metstab_pred.src.optimisation.sample import make_samples
+from edo import make_origin, Task, TASK_ERROR_MSG
+from edo.data import cutoffs_metstabon
+from edo.shap_analysis.utils import index_of_smiles
+from edo.shap_analysis.feature import make_features
+from edo.shap_analysis.preprocessing import get_present_features
+from edo.shap_analysis.categorisation import SeparationResult, HighImpactResult, RandomRule
+from edo.optimisation import Goal
+from edo.optimisation.utils import load_train_test, load_shap_files, load_predictions, load_model, find_experiment
+from edo.optimisation.generate_rules import derive_well_separated_two_way_rules, derive_high_impact_rules
+from edo.optimisation.generate_rules import derive_random_rules_sample
+from edo.optimisation.sample import make_samples
 
-# from metstab_pred.src.shap_analysis.categorisation import Region
-from metstab_pred.src.optimisation.utils import get_predictions_before_after, get_predictions_before_after_slow
-from metstab_pred.src.optimisation.utils import filter_correct_predictions_only, group_samples, intersection_list, \
-    difference_list
-from metstab_pred.src.optimisation.filter_rules import filter_rules, condition_well_separated, condition_high_impact
-from metstab_pred.src.optimisation.filter_rules import filter_out_unimportant
+from edo.optimisation.utils import get_predictions_before_after, get_predictions_before_after_slow
+from edo.optimisation.utils import filter_correct_predictions_only, group_samples, intersection_list, difference_list
+from edo.optimisation.filter_rules import filter_rules, condition_well_separated, condition_high_impact
+from edo.optimisation.filter_rules import filter_out_unimportant
 
 
 class TestOptimisationUtils(unittest.TestCase):
@@ -29,7 +26,6 @@ class TestOptimisationUtils(unittest.TestCase):
         self.n = 100
         self.big_n = 1000
         self.results_dir = '/home/pocha/shared-lnk/results/pocha/full_clean_data/2022-12-full-clean-data'
-        self.results_dir = '/home/pocha/shared-sin/results/pocha/full_clean_data/2022-12-full-clean-data'  # in notebook
         self.check_unlogging = True
         self.make_features_rules_samples()
         self.make_regression_model()

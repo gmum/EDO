@@ -1,10 +1,10 @@
 import os.path as osp
 import numpy as np
 
-from metstab_pred.src.utils import get_all_subfolders, get_configs_and_model, find_and_load, usv
-from metstab_pred.src.optimisation.utils import load_train_test
+from edo.utils import get_all_subfolders, get_configs_and_model, find_and_load, usv
+from edo.optimisation.utils import load_train_test
 
-from metstab_pred.src.data import log_stability, unlog_stability, Unlogger
+from edo.data import log_stability, unlog_stability, Unlogger
 
 
 def test_log_unlog_stability(n=100, m=200):

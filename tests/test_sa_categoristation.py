@@ -1,8 +1,8 @@
 import operator
 import numpy as np
-from metstab_pred.src.shap_analysis.feature import Feature
+from edo.shap_analysis.feature import Feature
 
-from metstab_pred.src.shap_analysis.categorisation.utils import n_zeros_ones, purity, majority
+from edo.shap_analysis.categorisation.utils import n_zeros_ones, purity, majority
 
 
 def test_n_zeros_ones(n=1000, max_size=1000):
@@ -70,7 +70,6 @@ def test_majority(n=1000, max_s=100):
 """
 Below, there are dummy tests for categories:
 - high-gain,
-- selectively important,
 - unimportant.
 
 Tests for well-separated features are more general and done in test_shap_analysis.py
@@ -130,19 +129,6 @@ def high_impact_answers():
                (4, 'purity'): [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
                }
 
-    return answers
-
-
-def selectively_important_answers():
-    answers = {(1, 'absolute'): [2, 3, 4, 2, 4, 3, 2, 3],
-               (1, 'ratio'): [2 / 4, 3 / 5, 1, 2 / 4, 4 / 5, 3 / 5, 2 / 4, 3 / 5],
-               (2, 'absolute'): [2, 2, 2, 1, 3, 2, 1, 3],
-               (2, 'ratio'): [1, 2 / 3, 1, 1 / 2, 1, 2 / 3, 1, 1],
-               (3, 'absolute'): [1, 1, 0, 0, 1, 1, 0, 1],
-               (3, 'ratio'): [1, 1, np.nan, np.nan, 1, 1, np.nan, 1],
-               (4, 'absolute'): [0, 0, 0, 0, 0, 0],
-               (4, 'ratio'): [np.nan, np.nan, np.nan, np.nan, np.nan, np.nan],
-               }
     return answers
 
 
@@ -224,42 +210,6 @@ def test_high_impact_regions(features):
                                   equal_nan=True), f"Incorrect score {solution.score} != {ref_score}; metric: {metric}."
 
 
-def test_selectively_important_regions(features):
-    print("Testing consistency of selectively important regions...")
-    for ftr in features:
-        # print(f"   Testing {ftr.name}...")
-        f_vals = ftr._feature_values
-        s_vals = ftr._shap_values
-
-        for chosen_metric in ftr._selectively_important.values():
-            for solution in chosen_metric.values():
-                miu, metric = solution.params['miu'], solution.params['metric']
-                loss_reg, gain_reg, global_reg = solution.loss_region, solution.gain_region, solution.overall
-
-                _test_region_indices(loss_reg, s_vals, miu, lower_than=True)
-                _test_region_indices(gain_reg, s_vals, miu, lower_than=False)
-                assert np.all(np.logical_or(loss_reg.indices,
-                                            gain_reg.indices) == global_reg.indices), "Global region is not a sum of loss region and gain region."  # global region assert
-
-                _test_region_metrics(loss_reg, f_vals[loss_reg.indices])
-                _test_region_metrics(gain_reg, f_vals[gain_reg.indices])
-                _test_region_metrics(global_reg, f_vals[global_reg.indices])
-
-                # is range for each region correct?
-                assert loss_reg.start == -np.inf and loss_reg.end == -miu, f"Incorrect range {loss_reg.start} != {-np.inf} or {loss_reg.end} != {-miu}"
-                assert gain_reg.start == miu and gain_reg.end == np.inf, f"Incorrect range {gain_reg.start} != {miu} or {gain_reg.end} != {np.inf}"
-                assert global_reg.start is None and global_reg.end is None, f"Incorrect range {global_reg.start} != {None} or {global_reg.end} != {None}"
-
-                # is score correct?
-                # global_reg indices are correct (see global region assert)
-                # values of n_correct and purity in global_reg are correct
-                # (see `_test_region_consistency(global_reg, ...)`)
-                # therefore, we can rely on these values while checking if solution.score is correct
-                ref_score = global_reg.n_correct if metric == 'absolute' else global_reg.purity
-                assert np.isclose(solution.score, ref_score,
-                                  equal_nan=True), f"Incorrect score {solution.score} != {ref_score}; metric: {metric}."
-
-
 def iterate_and_test_equality(features, answers, category):
     # for dummy features check if reference answers are correct
     print(f"Testing {category}...")
@@ -278,10 +228,8 @@ if __name__ == "__main__":
     features = dummy_features()
 
     iterate_and_test_equality(features, high_impact_answers(), 'high_impact')
-    iterate_and_test_equality(features, selectively_important_answers(), 'selectively_important')
     iterate_and_test_equality(features, unimportant_answers(), 'unimportant')
 
     test_high_impact_regions(features)
-    test_selectively_important_regions(features)
 
     print("Done.")

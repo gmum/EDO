@@ -4,10 +4,10 @@ import os.path as osp
 
 import numpy as np
 
-from metstab_pred.src.utils import get_all_subfolders
-from metstab_pred.src.optimisation.utils import load_train_test
+from edo.utils import get_all_subfolders
+from edo.optimisation.utils import load_train_test
 
-from metstab_pred.src.shap_analysis.utils import index_of_smiles
+from edo.shap_analysis.utils import index_of_smiles
 
 
 class TestIndexOfSmiles(unittest.TestCase):

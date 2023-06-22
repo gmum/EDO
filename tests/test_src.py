@@ -3,7 +3,7 @@
 import unittest
 import numpy as np
 
-from metstab_pred.src._check import assert_binary, assert_strictly_positive_threshold
+from edo._check import assert_binary, assert_strictly_positive_threshold
 
 
 class Test_check(unittest.TestCase):

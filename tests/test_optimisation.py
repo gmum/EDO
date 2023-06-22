@@ -6,9 +6,9 @@ import numpy as np
 
 from tqdm import tqdm
 
-from metstab_pred.src import make_origin
-from metstab_pred.src.optimisation.utils import find_experiment
-from metstab_pred.src.optimisation import set_seed, get_random_generator
+from edo import make_origin
+from edo.optimisation.utils import find_experiment
+from edo.optimisation import set_seed, get_random_generator
 
 
 class TestFindingExperiments(unittest.TestCase):
@@ -20,7 +20,6 @@ class TestFindingExperiments(unittest.TestCase):
 
     def setUp(self):
         self.results_dir = '/home/pocha/shared-lnk/results/pocha/full_clean_data/2022-12-full-clean-data'
-        self.results_dir = '/home/pocha/shared-sin/results/pocha/full_clean_data/2022-12-full-clean-data'  # in notebook
 
     def test_make_origin(self):
         datasets = ['h', 'H', 'human', 'Human', 'HUMAN', 'hUmaN', 'r', 'R', 'rat', 'Rat', 'RAT']
