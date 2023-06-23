@@ -8,33 +8,35 @@ import logging
 import os.path as osp
 import numpy as np
 
-from requests.exceptions import HTTPError
-
 
 def get_timestamp():
     return time.strftime('%Y-%m-%d_%H-%M')
 
 
 def make_directory(where, dname):
+    """Make directory called dname at where location unless it already exists"""
     try:
         os.makedirs(osp.join(where, dname))
     except FileExistsError:
         pass
+    return
 
 
 def save_predictions(x, y, cv_split, test_x, test_y, smiles, test_smiles, model, saving_dir):
+    """Calculate predictions of a model on each fold and save in saving_dir"""
+
     timestamp = get_timestamp()
 
-    def _save_to_file(smiles, true_label, predicted_label, predicted_probabilities, filename):
+    def _save_to_file(smis, true_label, predicted_label, predicted_probabilities, filename):
         if predicted_probabilities is None:
-            predicted_probabilities = [None, ] * len(smiles)
+            predicted_probabilities = [None, ] * len(smis)
         try:
             os.makedirs(saving_dir)
         except FileExistsError:
             pass
         with open(osp.join(saving_dir, f"{timestamp}-{filename}"), 'w') as fid:
             fid.write('smiles\ttrue\tpredicted\tclass_probabilities\n')
-            for sm, true, pred, proba in zip(smiles, true_label, predicted_label, predicted_probabilities):
+            for sm, true, pred, proba in zip(smis, true_label, predicted_label, predicted_probabilities):
                 fid.write(f"{sm}\t{true}\t{pred}\t{proba}\n")
 
     # training data
@@ -58,10 +60,20 @@ def save_predictions(x, y, cv_split, test_x, test_y, smiles, test_smiles, model,
     _save_to_file(test_smiles, test_y, predicted, proba, f'test.predictions')
 
 
-def save_as_json(obj, saving_dir, filename):
-    # saves with json but uses a timestamp
-    ## nexp = optional neptune experiment
+def save_configs(cfgs_list, directory):
+    # copy configs from cfgs_list to directory
     timestamp = get_timestamp()
+    for config_file in cfgs_list:
+        filename = f"{timestamp}-{osp.basename(config_file)}"
+        shutil.copyfile(config_file, osp.join(directory, filename))
+    return
+
+
+def save_as_json(obj, saving_dir, filename):
+    # save as json using timestamp
+    timestamp = get_timestamp()
+
+    # change numpy arrays to json-edible format
     if isinstance(obj, dict):
         for key in obj.keys():
             if isinstance(obj[key], np.ndarray):
@@ -69,26 +81,19 @@ def save_as_json(obj, saving_dir, filename):
 
     with open(osp.join(saving_dir, f'{timestamp}-{filename}'), 'w') as f:
         json.dump(obj, f, indent=2)
-
     return
 
 
-def save_configs(cfgs_list, directory):
-    # stores config files in the experiment dir
-    timestamp = get_timestamp()
-    for config_file in cfgs_list:
-        filename = f"{timestamp}-{osp.basename(config_file)}"
-        shutil.copyfile(config_file, osp.join(directory, filename))
-
-
-def pickle_and_log_artifact(obj, saving_dir, filename):
+def save_as_pickle(obj, saving_dir, filename):
+    # save as pickle using timestamp
     timestamp = get_timestamp()
     with open(osp.join(saving_dir, f'{timestamp}-{filename}.pickle'), 'wb') as f:
         pickle.dump(obj, f, protocol=4)
     return
 
 
-def save_npy_and_log_artifact(obj, saving_dir, filename, allow_pickle):
+def save_as_np(obj, saving_dir, filename, allow_pickle):
+    # save as numpy using timestamp
     timestamp = get_timestamp()
     np.save(osp.join(saving_dir, f'{timestamp}-{filename}.npy'), obj, allow_pickle=allow_pickle)
     return
@@ -121,9 +126,9 @@ class LoggerWrapper:
                             filemode='w')
         formatter = logging.Formatter('%(name)-6s: %(levelname)-8s %(message)s')
 
-        # make a handler to redirect stuff to std.out
+        # make a handler to redirect everything to std.out
         self.logger = logging.getLogger('')
-        self.logger.setLevel(logging.INFO)  # bacause matplotlib throws lots of debug messages
+        self.logger.setLevel(logging.INFO)
         self.console = logging.StreamHandler(sys.stdout)
         self.console.setLevel(logging.INFO)
         self.console.setFormatter(formatter)

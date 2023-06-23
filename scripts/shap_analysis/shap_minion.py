@@ -3,10 +3,10 @@ import sys
 import shap
 import pickle
 
-from edo.data import Unlogger
+from edo.data import Unloger
 from edo.config import parse_shap_config, utils_section
 from edo.utils import get_configs_and_model, find_and_load
-from edo.savingutils import save_npy_and_log_artifact, LoggerWrapper
+from edo.savingutils import save_as_np, LoggerWrapper
 
 
 n_args = 1 + 4
@@ -41,7 +41,7 @@ if __name__=='__main__':
         model = pickle.load(f)
         
     if unlog:
-        model = Unlogger(model)
+        model = Unloger(model)
         
     X_part = find_and_load(saving_dir, f'X_part_{part_id}.npy', protocol='numpy')
     background_data = find_and_load(saving_dir, "background_data.pickle", protocol='pickle')
@@ -54,5 +54,5 @@ if __name__=='__main__':
     sv = e.shap_values(X_part)
 
     # saving results
-    save_npy_and_log_artifact(sv, saving_dir, f'SHAP_values_part_{part_id}', allow_pickle=False, nexp=nexp)
-    save_npy_and_log_artifact(e.expected_value, saving_dir, f'expected_values_part_{part_id}', allow_pickle=False, nexp=nexp)
+    save_as_np(sv, saving_dir, f'SHAP_values_part_{part_id}', allow_pickle=False, nexp=nexp)
+    save_as_np(e.expected_value, saving_dir, f'expected_values_part_{part_id}', allow_pickle=False, nexp=nexp)

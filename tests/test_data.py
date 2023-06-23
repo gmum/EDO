@@ -4,7 +4,7 @@ import numpy as np
 from edo.utils import get_all_subfolders, get_configs_and_model, find_and_load, usv
 from edo.optimisation.utils import load_train_test
 
-from edo.data import log_stability, unlog_stability, Unlogger
+from edo.data import log_stability, unlog_stability, Unloger
 
 
 def test_log_unlog_stability(n=100, m=200):
@@ -57,7 +57,7 @@ def test_Unlogger(exp_dir):
 
         just_model = find_and_load(mldir, osp.basename(model_pickle), protocol='pickle')
         unlg_model = find_and_load(mldir, osp.basename(model_pickle), protocol='pickle')
-        unlg_model = Unlogger(unlg_model)
+        unlg_model = Unloger(unlg_model)
 
         for x in [x_train, x_test]:
             just_preds = just_model.predict(x)

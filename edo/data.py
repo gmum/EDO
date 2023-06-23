@@ -23,12 +23,17 @@ test = 'test'
 
 
 def load_data(data_config, fingerprint, morgan_nbits=None):
+    """
+    Load dataset according to data_config (includes preprocessing of labels) and represent using fingerprint.
+    Returns dataset partitioned with defined split.
+    """
+
     datasets = []
     indices = []
     this_start = 0
     for path in sorted(data_config[DATA].values()):
-        x, y, smiles = preprocess_dataset(path=path, data_config=data_config,
-                                          fingerprint=fingerprint, morgan_nbits=morgan_nbits)
+        x, y, smiles = load_and_preprocess(path=path, data_config=data_config,
+                                           fingerprint=fingerprint, morgan_nbits=morgan_nbits)
         datasets.append((x, y, smiles))
         indices.append((this_start, this_start+len(y)))
         this_start += len(y)
@@ -36,41 +41,47 @@ def load_data(data_config, fingerprint, morgan_nbits=None):
     x = np.vstack([el[0] for el in datasets])
     y = np.hstack([el[1] for el in datasets])
     smiles = np.hstack([el[2] for el in datasets])
-
     cv_split = get_cv_split(indices)
 
     # test set
-    test_x, test_y, test_smiles = preprocess_dataset(path=data_config[utils_section][test],
-                                                     data_config=data_config,
-                                                     fingerprint=fingerprint,
-                                                     morgan_nbits=morgan_nbits)
+    test_x, test_y, test_smiles = load_and_preprocess(path=data_config[utils_section][test], data_config=data_config,
+                                                      fingerprint=fingerprint, morgan_nbits=morgan_nbits)
 
     return x, y, cv_split, test_x, test_y, smiles, test_smiles
 
 
-def load_data_from_df(dataset_paths, smiles_index, y_index, skip_line=False, delimiter=',', scale=None, average=None):
+def get_cv_split(indices):
+    """Calculate sklearn-edible cv_split using indices"""
+    cv_split = []
+    for val_indices in indices:
+        train_indices = []
+        for idxs in [list(range(*i)) for i in indices if i != val_indices]:
+            train_indices.extend(idxs)
+        val_indices = list(range(*val_indices))
+
+        assert len(train_indices) + len(val_indices) == len(set(train_indices + val_indices))
+
+        cv_split.append((np.array(train_indices), np.array(val_indices)))
+    return cv_split
+
+
+def load_csvs(dataset_paths, smiles_index, y_index, skip_line=False, delimiter=',', scale=None, average=None):
     """
-    Load multiple files from csvs, concatenate and return smiles and ys
-    :param dataset_paths: list: paths to csv files with data
+    Load csv-files from dataset_paths, concatenate them and return as smiles and preprocessed labels
+    :param dataset_paths: list[str]: paths to csv files with data
     :param smiles_index: int: index of the column with smiles
-    :param y_index: int: index of the column with the label
+    :param y_index: int: index of the column with labels
     :param skip_line: boolean: True if the first line of the file contains column names, False otherwise
     :param delimiter: delimeter used in csv
-    :param scale: should y be scaled? (useful with skewed distributions of y)
-    :param average: if the same SMILES appears multiple times how should its values be averaged?
+    :param scale: str or None: how should labels be scaled? Must be `sqrt`, `log` or None.
+    :param average: str or None: if the same SMILES appears multiple times how should its labels be averaged? Must be `median` or None.
     :return: (smiles, labels) - np.arrays
     """
 
-    # column names present in files?
+    # load
     header = 0 if skip_line else None
-
-    # reading all the files
-    dfs = []
-    for data_path in dataset_paths:
-        dfs.append(pd.read_csv(data_path, delimiter=delimiter, header=header))
-
-    # merging
-    data_df = pd.concat(dfs)
+    data_df = [pd.read_csv(data_path, delimiter=delimiter, header=header) for data_path in dataset_paths]
+    data_df = pd.concat(data_df)
 
     # scaling
     if scale is not None:
@@ -105,16 +116,18 @@ def load_data_from_df(dataset_paths, smiles_index, y_index, skip_line=False, del
     return data_x, data_y
 
 
-def preprocess_dataset(path, data_config, fingerprint, morgan_nbits=None):
+def load_and_preprocess(path, data_config, fingerprint, morgan_nbits=None):
+    """Load data from path using data_config (defines preprocessing of labels) and represent using fingerprint"""
+
     if fingerprint == 'morgan':
         assert morgan_nbits is not None, 'Parameter `morgan_nbits` must be set when using Morgan fingerprint.'
 
-    smiles, labels = load_data_from_df([path,], **data_config[csv_section])
+    smiles, labels = load_csvs([path, ], **data_config[csv_section])
     x = []
     y = []
-    calculated_smiles = []
+    smis = []
 
-    # for other representations we go smiles by smiles because some make rdkit throw errors
+    # we go smiles by smiles because some make rdkit throw errors
     for this_smiles, this_label in zip(smiles, labels):
         try:
             mol = Chem.MolFromSmiles(this_smiles)
@@ -132,19 +145,19 @@ def preprocess_dataset(path, data_config, fingerprint, morgan_nbits=None):
                 fp = pubfp(this_smiles)
             else:
                 # unknown fingerprint
-                raise ValueError(f"Only `morgan`, `maccs`, `krfp`, `padel` and `pubfp` are accepted values. Found: {fingerprint}")
+                raise ValueError(f"Only `morgan`, `maccs`, `krfp`, `padel` and `pubfp` are accepted. Given: {fingerprint}")
             x.append(fp)
             y.append(this_label)
-            calculated_smiles.append(this_smiles)
+            smis.append(this_smiles)
         except Exception as e:
             print(f'For smiles {this_smiles} the error is:')
             print(e, '\n')
-    return np.array(x), np.array(y), calculated_smiles
+    return np.array(x), np.array(y), smis
 
 
 def padel_assert(pattern_hash, pattern_filepath):
-    """    check if pattern_filename has the proper content.    """
-    # padel here means PaDEL program, not PaDEL fingeprprint
+    """check if pattern_filepath has the proper content using pattern_hash"""
+    # padel here means PaDEL package, not PaDEL fingerprint
     with open(pattern_filepath, 'r') as desc_file:
         desc_file_content = desc_file.read()
         
@@ -154,84 +167,71 @@ def padel_assert(pattern_hash, pattern_filepath):
     return
 
 
-def padel_calculate(smi, padel_kwargs):
-    """calculate representation of smi with padel"""
+def padel_calculate(smiles, padel_kwargs):
+    """calculate representation of smiles with padel using padel_kwargs"""
     # on prometheus we should use SCRATCH, everywhere else the default location is fine
-    with tempfile.TemporaryDirectory(dir=os.getenv('SCRATCH', None)) as tmpdirname:
-        smi_file = os.path.join(tmpdirname, "molecules.smi")
+    with tempfile.TemporaryDirectory(dir=os.getenv('SCRATCH', None)) as temp_dir:
+        smi_file = osp.join(temp_dir, "molecules.smi")
         with open(smi_file, 'w') as sf:
-            sf.write(smi)
-        out = os.path.join(tmpdirname, "out.csv")
+            sf.write(smiles)
+        out = osp.join(temp_dir, "out.csv")
         padeldescriptor(mol_dir=smi_file, d_file=out, retainorder=True, threads=5, **padel_kwargs)
-        fp = pd.read_csv(out).values[:,1:].reshape((-1)).astype(int)
+        fp = pd.read_csv(out).values[:, 1:].reshape((-1)).astype(int)
         return fp
 
 
 @lru_cache(maxsize=None)
-def padel_1D2D(smi):
-    """"calculate PaDEL 1D&2D descriptor of smi"""
+def padel_1D2D(smiles):
+    """"calculate PaDEL 1D&2D descriptor of smiles"""
     pattern_filepath = osp.join(osp.dirname(osp.realpath(__file__)), 'descriptors_padelfp.xml')
     pattern_hash = 'fb1788d709b5ce54fc546f671456c962'
     padel_assert(pattern_hash, pattern_filepath)
 
     padel_kwargs = {'fingerprints': False, 'd_2d': True, 'descriptortypes': pattern_filepath}
-    fp = padel_calculate(smi, padel_kwargs)
+    fp = padel_calculate(smiles, padel_kwargs)
     return fp
 
 
 @lru_cache(maxsize=None)
-def pubfp(smi):
-    """"calculate PubChem fingerprint of smi"""
+def pubfp(smiles):
+    """"calculate PubChem fingerprint of smiles"""
     pattern_filepath = osp.join(osp.dirname(osp.realpath(__file__)), 'descriptors_pubfp.xml')
     pattern_hash = '04ac1eb1f136aaafb5e858edb2ee67de'
     padel_assert(pattern_hash, pattern_filepath)
     
-    fp = padel_calculate(smi, {'fingerprints': True, 'descriptortypes': pattern_filepath})
+    fp = padel_calculate(smiles, {'fingerprints': True, 'descriptortypes': pattern_filepath})
     return fp
 
 
 @lru_cache(maxsize=None)
-def krfp(smi):
-    """"calculate Klekota-Roth fingeprint of smi"""
+def krfp(smiles):
+    """"calculate Klekota-Roth fingeprint of smiles"""
     pattern_filepath = osp.join(osp.dirname(osp.realpath(__file__)), 'descriptors_krfp.xml')
     pattern_hash = 'f6145f57ff346599b907b044316c4e71'
     padel_assert(pattern_hash, pattern_filepath)
     
-    fp = padel_calculate(smi, {'fingerprints': True, 'descriptortypes': pattern_filepath})
+    fp = padel_calculate(smiles, {'fingerprints': True, 'descriptortypes': pattern_filepath})
     return fp
 
 
-def get_cv_split(indices):
-    iterator = []
-    for val_indices in indices:
-        train_indices = []
-        for idxs in [list(range(*i)) for i in indices if i != val_indices]:
-            train_indices.extend(idxs)
-        val_indices = list(range(*val_indices))
-
-        assert len(train_indices) + len(val_indices) == len(set(train_indices + val_indices))
-
-        iterator.append((np.array(train_indices), np.array(val_indices)))
-    return iterator
-
-
 def log_stability(values):
+    """Scale labels logarithmically"""
     if isinstance(values, (list, tuple)):
         return [np.log(1+v) for v in values]
     else:
-        # for int, float, np.array it'll work, for else - IDK
         return np.log(1+values)
 
 
 def unlog_stability(values):
+    """Reverse logarithmic scaling"""
     if isinstance(values, (list, tuple)):
         return [np.exp(v)-1 for v in values]
     else:
         return np.exp(values) - 1
     
 
-class Unlogger(object):
-    """Unloggs values of regressors when calculating SHAP (for classifiers it makes no sense)."""
+class Unloger(object):
+    """Unlogs predictions of regression models when calculating SHAP (for classifiers it makes no sense)."""
     def __init__(self, model):
         if isinstance(model, Pipeline):
             if not isinstance(model.steps[-1][1], RegressorMixin):
@@ -254,10 +254,10 @@ class Unlogger(object):
 
 
 def cutoffs_metstabon(values, log_scale):
-    """Changes regression to classification
-    according to cutoffs from MetStabOn - Online Platform for Metabolic Stability Predictions (Podlewska & Kafel)
-    values - np.array of metabolic stabilities
-    log_scale - boolean indicating if the stability values are in log-scale (True) or not (False)
+    """
+    Changes regression to classification according to cutoffs from MetStabOn (Podlewska & Kafel)
+    values: np.array: metabolic stability
+    log_scale: boolean: are values in log-scale (True) or not (False)
     """
 
     # y <= 0.6 - low

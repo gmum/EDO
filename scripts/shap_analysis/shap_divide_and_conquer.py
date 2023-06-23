@@ -5,10 +5,10 @@ import shap
 import pickle
 import numpy as np
 
-from edo.data import load_data, Unlogger
+from edo.data import load_data, Unloger
 from edo.config import parse_shap_config, utils_section
 from edo.utils import get_configs_and_model, find_and_load
-from edo.savingutils import save_configs, pickle_and_log_artifact, save_npy_and_log_artifact, LoggerWrapper
+from edo.savingutils import save_configs, save_as_pickle, save_as_np, LoggerWrapper
 
 
 n_args = 1 + 3  # + 1 optional parameter
@@ -79,11 +79,11 @@ if __name__=='__main__':
     objects = [X_full, y_full, smiles_full]
     fnames = ['X_full', 'true_ys', 'smiles']
     for obj, fname in zip(objects , fnames):
-        save_npy_and_log_artifact(obj, saving_dir, fname, allow_pickle=False)
+        save_as_np(obj, saving_dir, fname, allow_pickle=False)
 
     # calculating background data using the whole dataset
     background_data = shap.kmeans(X_full, k)
-    pickle_and_log_artifact(background_data, saving_dir, 'background_data')
+    save_as_pickle(background_data, saving_dir, 'background_data')
 
     # chunking the dataset (#DIVIDE)
     n_samples = X_full.shape[0]
@@ -101,7 +101,7 @@ if __name__=='__main__':
     
     start = 0
     for i, size in enumerate(sizes):
-        save_npy_and_log_artifact(X_full[start:start+size, :], saving_dir, f'X_part_{i+1}', allow_pickle=False)
+        save_as_np(X_full[start:start + size, :], saving_dir, f'X_part_{i+1}', allow_pickle=False)
         start = start+size
     assert start == n_samples
 
@@ -111,14 +111,14 @@ if __name__=='__main__':
         model = pickle.load(f)
     
     if unlog:
-        model = Unlogger(model)
+        model = Unloger(model)
 
     if 'classification' == task_cfg[utils_section]['task']:
-        save_npy_and_log_artifact(model.classes_, saving_dir, 'classes_order', allow_pickle=False)
+        save_as_np(model.classes_, saving_dir, 'classes_order', allow_pickle=False)
         preds = model.predict_proba(X_full)
     else:
         preds = model.predict(X_full)
 
-    save_npy_and_log_artifact(preds, saving_dir, 'predictions_part', allow_pickle=False)
+    save_as_np(preds, saving_dir, 'predictions_part', allow_pickle=False)
 
     print("Finished.")

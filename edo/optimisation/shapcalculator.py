@@ -11,7 +11,7 @@ from .sample import Sample
 from .. import Task, TASK_ERROR_MSG, make_origin
 from ..config import parse_shap_config, utils_section
 from ..utils import find_and_load, get_configs_and_model, usv
-from ..data import Unlogger
+from ..data import Unloger
 from ..shap_analysis._check import _check_unlogging
 
 
@@ -33,7 +33,7 @@ class SHAPCalculator(object):
             _check_unlogging(unlog, task)
 
         if unlog:
-            model = Unlogger(model)
+            model = Unloger(model)
 
         # now we can load classes_order from shapdir
         if task == Task.CLASSIFICATION:

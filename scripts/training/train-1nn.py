@@ -6,7 +6,7 @@ from edo.config import utils_section, csv_section, metrics_section, force_classi
 from edo.config import parse_data_config, parse_representation_config, parse_task_config
 from edo.data import load_data
 from edo.utils import force_classification, get_scorer
-from edo.savingutils import save_configs, save_as_json, save_predictions, LoggerWrapper, pickle_and_log_artifact
+from edo.savingutils import save_configs, save_as_json, save_predictions, LoggerWrapper, save_as_pickle
 
 
 # usage
@@ -47,7 +47,7 @@ if __name__=='__main__':
     objects = [x, y, smiles, test_x, test_y, test_smiles]
     fnames = ['x', 'y', 'smiles', 'test_x', 'test_y', 'test_smiles']
     for obj, fname in zip(objects, fnames):
-        pickle_and_log_artifact(obj, saving_dir, fname)
+        save_as_pickle(obj, saving_dir, fname)
 
     # change y in case of classification
     if 'classification' == task_cfg[utils_section]['task']:
@@ -69,7 +69,7 @@ if __name__=='__main__':
     
     # # # SAVING RESULTS
     # save the model itself
-    pickle_and_log_artifact(model, saving_dir, 'model')
+    save_as_pickle(model, saving_dir, 'model')
 
     # save predictions
     save_predictions(x, y, cv_split, test_x, test_y, smiles, test_smiles, model, saving_dir)

@@ -12,7 +12,7 @@ from rdkit import Chem
 
 from ..utils import find_and_load
 from ..config import utils_section, csv_section, parse_shap_config
-from ..data import preprocess_dataset
+from ..data import load_and_preprocess
 
 from .. import Task, TASK_ERROR_MSG
 
@@ -103,6 +103,6 @@ def represent_compound(compound, repr_cfg, data_cfg, tmpdirname):
         data_cfg[csv_section]['smiles_index'] = 1
         data_cfg[csv_section]['y_index'] = 2
 
-    x_r, _, smiles = preprocess_dataset(fname, data_cfg, **repr_cfg[utils_section])
+    x_r, _, smiles = load_and_preprocess(fname, data_cfg, **repr_cfg[utils_section])
     return x_r, smiles
 
