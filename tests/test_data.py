@@ -4,7 +4,8 @@ import numpy as np
 from edo.utils import get_all_subfolders, get_configs_and_model, find_and_load, usv
 from edo.optimisation.utils import load_train_test
 
-from edo.data import log_stability, unlog_stability, Unloger
+from edo.data import log_stability, unlog_stability
+from edo.wrappers import Unloger
 
 
 def test_log_unlog_stability(n=100, m=200):

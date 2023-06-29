@@ -3,10 +3,10 @@ import sys
 import shap
 import pickle
 
-from edo.data import Unloger
-from edo.config import parse_shap_config, utils_section
+from edo.wrappers import Unloger, LoggerWrapper
+from edo.config import parse_shap_config, UTILS
 from edo.utils import get_configs_and_model, find_and_load
-from edo.savingutils import save_as_np, LoggerWrapper
+from edo.savingutils import save_as_np
 
 
 n_args = 1 + 4
@@ -29,8 +29,8 @@ if __name__=='__main__':
 
     # load shap configuration
     shap_cfg = parse_shap_config(sys.argv[3])
-    link = shap_cfg[utils_section]["link"]
-    unlog = shap_cfg[utils_section]["unlog"]
+    link = shap_cfg[UTILS]["link"]
+    unlog = shap_cfg[UTILS]["unlog"]
     assert isinstance(unlog, bool), f"Bool must be bool, `unlog` is {type(unlog)}."
 
     # load other configs
@@ -47,7 +47,7 @@ if __name__=='__main__':
     background_data = find_and_load(saving_dir, "background_data.pickle", protocol='pickle')
 
     # calculating SHAP values
-    if 'classification' == task_cfg[utils_section]['task']:
+    if 'classification' == task_cfg[UTILS]['task']:
         e = shap.KernelExplainer(model.predict_proba, background_data, link=link)
     else:
         e = shap.KernelExplainer(model.predict, background_data, link=link)  # regression

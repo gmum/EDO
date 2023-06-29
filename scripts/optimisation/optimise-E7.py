@@ -8,7 +8,8 @@ import pandas as pd
 
 
 from edo import make_origin, Task
-from edo.savingutils import make_directory, save_as_json, get_timestamp, LoggerWrapper
+from edo.savingutils import make_directory, save_as_json, get_timestamp
+from edo.wrappers import LoggerWrapper
 
 from edo.shap_analysis.preprocessing import get_present_features
 from edo.shap_analysis.utils import index_of_smiles

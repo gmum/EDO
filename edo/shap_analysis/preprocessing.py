@@ -4,7 +4,7 @@ import pandas as pd
 from copy import deepcopy
 
 from .. import Task, TASK_ERROR_MSG
-from ..config import utils_section, csv_section
+from ..config import UTILS, CSV
 from ..data import unlog_stability
 from ..utils import get_configs_and_model#, find_and_load
 
@@ -46,17 +46,17 @@ def get_smiles_correct(smiles_true_predicted_df, task, task_cfg, data_cfg, class
     # 1 b) zostawienie wyłącznie poprawnych
     correct = deepcopy(smiles_true_predicted_df)
     
-    if data_cfg[csv_section]['scale'] is None:
+    if data_cfg[CSV]['scale'] is None:
             log_scale = False
-    elif 'log' == data_cfg[csv_section]['scale']:
+    elif 'log' == data_cfg[CSV]['scale']:
         log_scale = True
     else:
-        raise NotImplementedError(f"scale {data_cfg[csv_section]['scale']} is not implemented.")
+        raise NotImplementedError(f"scale {data_cfg[CSV]['scale']} is not implemented.")
     
     if task == Task.CLASSIFICATION:
         class_cols = [Category(i).name for i in classes_order]
                
-        correct['true_class'] = correct.apply(lambda row: task_cfg[utils_section]['cutoffs'](float(row.true), log_scale=log_scale), axis=1)
+        correct['true_class'] = correct.apply(lambda row: task_cfg[UTILS]['cutoffs'](float(row.true), log_scale=log_scale), axis=1)
         correct['predicted_class'] = correct.apply(lambda row: pd.to_numeric(row.loc[class_cols]).nlargest(1).index[0], axis=1)
         correct = correct[correct.predicted_class == correct.true_class.apply(lambda c: Category(c).name)]
     
@@ -81,15 +81,15 @@ def get_smiles_stability_value(smiles_true_predicted_df, data_cfg, task_cfg):
     # returns three sets of smiles depending on the molecule's true class
     stability = deepcopy(smiles_true_predicted_df)
 
-    if data_cfg[csv_section]['scale'] is None:
+    if data_cfg[CSV]['scale'] is None:
         log_scale = False
-    elif 'log' == data_cfg[csv_section]['scale']:
+    elif 'log' == data_cfg[CSV]['scale']:
         log_scale = True
     else:
-        raise NotImplementedError(f"scale {data_cfg[csv_section]['scale']} is not implemented.")
+        raise NotImplementedError(f"scale {data_cfg[CSV]['scale']} is not implemented.")
 
     stability['true_class'] = stability.apply(
-        lambda row: task_cfg[utils_section]['cutoffs'](float(row.true), log_scale=log_scale), axis=1)
+        lambda row: task_cfg[UTILS]['cutoffs'](float(row.true), log_scale=log_scale), axis=1)
 
     low = stability[stability.true_class == 0]
     med = stability[stability.true_class == 1]

@@ -8,7 +8,7 @@ from copy import deepcopy
 from .. import make_origin, Task, TASK_ERROR_MSG
 from ..shap_analysis._check import _check_unlogging
 from ..utils import find_and_load, get_all_subfolders, get_all_files, usv
-from ..config import parse_shap_config, utils_section
+from ..config import parse_shap_config, UTILS
 
 from .shapcalculator import SHAPCalculator
 
@@ -71,7 +71,7 @@ def load_predictions(mldir, task):
 def load_shap_files(shapdir, task, check_unlogging):
     # smaller version of src.shap_analysis.utils load_shap_files with more checks
     shap_cfg = parse_shap_config(usv([osp.join(shapdir, f) for f in os.listdir(shapdir) if 'shap' in f and 'cfg' in f]))
-    unlog = shap_cfg[utils_section]["unlog"]
+    unlog = shap_cfg[UTILS]["unlog"]
     if check_unlogging:
         _check_unlogging(unlog, task)
 

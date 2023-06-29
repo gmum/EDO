@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from ... import Task
-from ...config import utils_section, csv_section
+from ...config import UTILS, CSV
 from ...utils import get_configs_and_model, find_and_load
 from .. import Category
 from ..utils import load_shap_files, load_ml_files, index_of_smiles
@@ -177,7 +177,7 @@ if __name__=="__main__":
 
     data_cfg, repr_cfg, task_cfg, model_cfg, model_pickle = get_configs_and_model(some_model)
     x_train, x_test, smiles_train, smiles_test = load_ml_files(some_model)
-    task = Task(task_cfg[utils_section]['task'])
+    task = Task(task_cfg[UTILS]['task'])
     shap_cfg, smiles_order, X_full, morgan_repr, true_ys, preds, classes_order, expected_values, shap_values, background_data = load_shap_files(some_shaps, task)
 
     smiles_true_predicted_df = get_smiles_true_predicted(smiles_order, true_ys, preds, task, classes_order)

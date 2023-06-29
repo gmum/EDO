@@ -137,7 +137,7 @@ class TestOptimisationUtils(unittest.TestCase):
             # up to self.small_n lists of max size self.n and values in [0, self.big_n)
             arrays = [np.random.randint(1 + np.random.randint(self.big_n), size=1 + np.random.randint(self.n)) for i in
                       range(1 + np.random.randint(self.small_n))]
-            all_values = set([v for arr in arrays for v in arr])
+            all_values = set(np.hstack(arrays))
             intersection = intersection_list(*arrays)
             self.assertTrue(set(intersection).issubset(all_values))
             self.assertEqual(intersection, sorted(intersection), msg=f"Result is not sorted: {intersection}")
@@ -177,21 +177,21 @@ class TestOptimisationUtils(unittest.TestCase):
         # test filtering on goal
         minimisation_rules = filter_rules(all_rules, goal=Goal.MINIMISATION)
         maximisation_rules = filter_rules(all_rules, goal=Goal.MAXIMISATION)
-
         self.assertEqual(len(all_rules), len(maximisation_rules) + len(minimisation_rules),
                          msg=f"Length mismatch {len(all_rules)} != {len(maximisation_rules)} + {len(minimisation_rules)}")
+
         for goal, rules in ((Goal.MINIMISATION, minimisation_rules), (Goal.MAXIMISATION, maximisation_rules)):
             for rule in rules:
                 self.assertEqual(rule.goal, goal, msg=f"{rule.goal} != {goal}")
                 self.assertIn(rule.as_dict(), all_rules_d)
 
         # test filtering on class
-        unst_rules = filter_rules(all_rules, cls_name=0)
-        medi_rules = filter_rules(all_rules, cls_name=1)
-        stab_rules = filter_rules(all_rules, cls_name=2)
-        self.assertEqual(len(all_rules), len(unst_rules) + len(medi_rules) + len(stab_rules),
-                         msg=f"Length mismatch {len(all_rules)} != {len(unst_rules)} + {len(medi_rules)} + {len(stab_rules)}")
-        for cls, rules in ((0, unst_rules), (1, medi_rules), (2, stab_rules)):
+        low_rules = filter_rules(all_rules, cls_name=0)
+        med_rules = filter_rules(all_rules, cls_name=1)
+        high_rules = filter_rules(all_rules, cls_name=2)
+        self.assertEqual(len(all_rules), len(low_rules) + len(med_rules) + len(high_rules),
+                         msg=f"Length mismatch {len(all_rules)} != {len(low_rules)} + {len(med_rules)} + {len(high_rules)}")
+        for cls, rules in ((0, low_rules), (1, med_rules), (2, high_rules)):
             for rule in rules:
                 self.assertEqual(rule.cls_name, cls)
                 self.assertIn(rule.as_dict(), all_rules_d)

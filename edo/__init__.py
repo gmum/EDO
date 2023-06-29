@@ -1,20 +1,30 @@
 from enum import Enum
 from collections import namedtuple
 
-from ._errors import TASK_ERROR_MSG
-
 
 class Task(Enum):
     CLASSIFICATION = 'classification'
     REGRESSION = 'regression'
 
 
+def TASK_ERROR_MSG(t):
+    return f"Unknown task: {t}. Known tasks are `Task.REGRESSION` and `Task.CLASSIFICATION`."
+
+
 def deduce_task(task, s_vals=None):
+    """
+    Deduce task and return as Task.
+    :param task: Task, str or None: task description
+    :param s_vals: np.array or None: SHAP values for a single feature/sample
+    :return: Task
+    """
     if task is None:
         if 2 == len(s_vals.shape):
             task = Task.CLASSIFICATION
-        else:
+        elif 1 == len(s_vals.shape):
             task = Task.REGRESSION
+        else:
+            raise ValueError(f"`s_vals.shape` must be 1 or 2 not {s_vals.shape}.")
     elif isinstance(task, str):
         task = Task(task)
     elif isinstance(task, Task):
@@ -24,14 +34,19 @@ def deduce_task(task, s_vals=None):
     return task
 
 
-# Origin identifies a ML model
+# Origin identifies a ML model and can be used to load all data for this model (edo.optimisation.utils.find_experiment)
 # ex. Origin('human', 'random', 'KRFP', 'classification', 'SVM') is
-# an SVM classifier trained on randomly splitted human data represented with KRFP
+# an SVM classifier trained on randomly split human data represented with KRFP
 # note: hypothetically, there can be more than one model with such a specification, though not in our project
 Origin = namedtuple('Origin', ['dataset', 'split', 'representation', 'task', 'model'])
 
 
 def make_origin(origin):
+    """
+    Create Origin object.
+    :param origin: Origin, Tuple[str] or List[str]: origin description
+    :return: Origin
+    """
     if not isinstance(origin, Origin):
         dataset, split, representation, task, model = origin
 
@@ -41,21 +56,21 @@ def make_origin(origin):
 
         fp = representation.lower()
         fps = ['kr', 'krfp', 'maccs', 'ma', 'padel', 'pubfp', 'mo128', 'mo512', 'mo1024']
-        assert fp in fps, f'`fingerprint` {representation} not in {fps}'
+        assert fp in fps, f'`representation` {representation} not in {fps}'
 
+        # we used a different abbreviation when calculating KNN models. This is a workaround.
         if fp in ['krfp', 'maccs'] and mod != 'knn':
             fp = fp[:2]
         elif mod == 'knn' and fp == 'kr':
             fp = 'krfp'
         elif mod == 'knn' and fp == 'ma':
             fp = 'maccs'
+        else:
+            pass
 
-        splits = {'r': 'random', 'random': 'random',
-                  's': 'scaffold', 'scaffold': 'scaffold'}
-        datasets = {'h': 'h', 'human': 'h',
-                    'r': 'r', 'rat': 'r'}
-        tasks = {'r': 'r', 'reg': 'r', 'regression': 'r',
-                 'c': 'c', 'cls': 'c', 'classification': 'c'}
+        splits = {'r': 'random', 'random': 'random', 's': 'scaffold', 'scaffold': 'scaffold'}
+        datasets = {'h': 'h', 'human': 'h', 'r': 'r', 'rat': 'r'}
+        tasks = {'r': 'r', 'reg': 'r', 'regression': 'r', 'c': 'c', 'cls': 'c', 'classification': 'c'}
 
         split = splits[split.lower()]
         data = datasets[dataset.lower()]

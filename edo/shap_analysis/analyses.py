@@ -4,7 +4,7 @@ import json
 import numpy as np
 import pandas as pd
 
-from ..config import utils_section
+from ..config import UTILS
 from .. import Task
 
 
@@ -26,7 +26,7 @@ from .. import Task
 #
 #     indices = list(reversed(list(np.abs(shap_vals).argsort())[-n:]))
 #
-#     representation = repr_cfg[utils_section]["fingerprint"]
+#     representation = repr_cfg[UTILS]["fingerprint"]
 #     if 'krfp' == representation:
 #         df = pd.read_csv(osp.join(data_dir, 'list_of_features_KlekFP.csv'), sep='\t', index_col=0)
 #     elif 'maccs' == representation:

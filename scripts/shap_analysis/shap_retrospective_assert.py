@@ -5,6 +5,7 @@ import numpy as np
 
 from edo.utils import find_and_load
 
+
 def natural_sort_key_giver(s):
     return int(s.split('_')[-1].split('.')[0])
 

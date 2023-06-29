@@ -50,6 +50,7 @@ class Rule(object):
     def __init__(self, origin, feature_index, class_index, class_name, action, goal,
                  criterion_relation, criterion_reference_point, name=None, derivation=None):
         validate_index(feature_index)
+        validate_index(class_index)
         assert isinstance(goal, Goal)
 
         self.origin = make_origin(origin)

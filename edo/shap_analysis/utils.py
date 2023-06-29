@@ -11,7 +11,7 @@ from collections.abc import Iterable
 from rdkit import Chem
 
 from ..utils import find_and_load
-from ..config import utils_section, csv_section, parse_shap_config
+from ..config import UTILS, CSV, parse_shap_config
 from ..data import load_and_preprocess
 
 from .. import Task, TASK_ERROR_MSG
@@ -35,7 +35,7 @@ def load_ml_files(directory):
 def load_shap_files(directory, task, check_unlogging=True):
     shap_cfg = parse_shap_config([osp.join(directory, f) for f in os.listdir(directory) if 'shap' in f and 'cfg' in f][0])
     if check_unlogging and task==Task.REGRESSION:
-        assert shap_cfg[utils_section]["unlog"], f"{directory} contains SHAP values for an estimator that was not unlogged!"
+        assert shap_cfg[UTILS]["unlog"], f"{directory} contains SHAP values for an estimator that was not unlogged!"
 
     smiles_order = find_and_load(directory, 'canonised.npy', protocol='numpy')
     X_full = find_and_load(directory, 'X_full.npy', protocol='numpy')
@@ -95,14 +95,14 @@ def represent_compound(compound, repr_cfg, data_cfg, tmpdirname):
     timestamp = time.time()
     fname = osp.join(tmpdirname, f'{timestamp}-smiles.csv')
     df = pd.DataFrame([[compound['canonic_smiles'], -1]], columns=['SMILES', 'STABILITY_SCORE'])
-    df.to_csv(fname, sep=data_cfg[csv_section]['delimiter'], header=data_cfg[csv_section]['skip_line'])
+    df.to_csv(fname, sep=data_cfg[CSV]['delimiter'], header=data_cfg[CSV]['skip_line'])
 
     # this will never happen with our data, byt might happen if someone added new datasets
-    if 1 != data_cfg[csv_section]['smiles_index'] or 2 != data_cfg[csv_section]['y_index']:
+    if 1 != data_cfg[CSV]['smiles_index'] or 2 != data_cfg[CSV]['y_index']:
         data_cfg = deepcopy(data_cfg)
-        data_cfg[csv_section]['smiles_index'] = 1
-        data_cfg[csv_section]['y_index'] = 2
+        data_cfg[CSV]['smiles_index'] = 1
+        data_cfg[CSV]['y_index'] = 2
 
-    x_r, _, smiles = load_and_preprocess(fname, data_cfg, **repr_cfg[utils_section])
+    x_r, _, smiles = load_and_preprocess(fname, data_cfg, **repr_cfg[UTILS])
     return x_r, smiles
 

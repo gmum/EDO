@@ -43,7 +43,7 @@ class Sample(object):
     """
 
     def __init__(self, feature_values, shap_values, shap_values_origin, classes_order=None, smiles=None):
-        validate_shapes(feature_values, shap_values, classes_order=classes_order, class_index=None)
+        validate_shapes(feature_values, shap_values, classes_order=classes_order)
 
         self.original_f_vals = feature_values  # original values
         self.f_vals = deepcopy(feature_values)  # current values, possibly updated

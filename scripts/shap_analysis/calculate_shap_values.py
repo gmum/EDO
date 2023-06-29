@@ -1,17 +1,16 @@
 import os
 import sys
-import logging
 import time
-import warnings
 
 import shap
 import pickle
 import numpy as np
 
-from edo.data import load_data, Unloger
-from edo.config import parse_shap_config, utils_section
+from edo.data import load_data
+from edo.wrappers import Unloger, LoggerWrapper
+from edo.config import parse_shap_config, UTILS
 from edo.utils import get_configs_and_model, find_and_load
-from edo.savingutils import save_configs, save_as_json, save_as_pickle, save_as_np, LoggerWrapper
+from edo.savingutils import save_configs, save_as_pickle, save_as_np
 
 
 n_args = 1 + 3
@@ -37,9 +36,9 @@ if __name__=='__main__':
 
     # load shap configuration
     shap_cfg = parse_shap_config(sys.argv[3])
-    k = shap_cfg[utils_section]["k"]
-    link = shap_cfg[utils_section]["link"]
-    unlog = shap_cfg[utils_section]["unlog"]
+    k = shap_cfg[UTILS]["k"]
+    link = shap_cfg[UTILS]["link"]
+    unlog = shap_cfg[UTILS]["unlog"]
     assert isinstance(unlog, bool), f"Bool must be bool, `unlog` is {type(unlog)}."
     save_configs([sys.argv[3], ], saving_dir)
 
@@ -47,13 +46,13 @@ if __name__=='__main__':
     # load other configs
     data_cfg, repr_cfg, task_cfg, model_cfg, model_pickle = get_configs_and_model(data_dir)
 
-    if unlog and task_cfg[utils_section]['task']=='classification':
+    if unlog and task_cfg[UTILS]['task']== 'classification':
         raise ValueError('Unlogging for classification does not make sense!')
     
     # load and concatenate data
-    if "fp" not in repr_cfg[utils_section]['fingerprint'] and 'padel' not in repr_cfg[utils_section]['fingerprint']:
+    if "fp" not in repr_cfg[UTILS]['fingerprint'] and 'padel' not in repr_cfg[UTILS]['fingerprint']:
         # MACCS or Morgan, we can calculate it for the sake of simplicity
-        x, y, _, test_x, test_y, smiles, test_smiles = load_data(data_cfg, **repr_cfg[utils_section])
+        x, y, _, test_x, test_y, smiles, test_smiles = load_data(data_cfg, **repr_cfg[UTILS])
     else:
         # KRFP, PubFP or PaDEL, we want to save time
         x = find_and_load(data_dir, '-x.pickle', protocol='pickle')
@@ -90,7 +89,7 @@ if __name__=='__main__':
     # calculating SHAP values
     logger_wrapper.logger.info(f"shap start {time.strftime('%Y-%m-%d %H:%M')}")
     background_data = shap.kmeans(X_full, k)
-    if 'classification' == task_cfg[utils_section]['task']:
+    if 'classification' == task_cfg[UTILS]['task']:
         e = shap.KernelExplainer(model.predict_proba, background_data, link=link)
     else:
         e = shap.KernelExplainer(model.predict, background_data, link=link)  # regression
@@ -102,7 +101,7 @@ if __name__=='__main__':
     save_as_np(sv, saving_dir, 'SHAP_values', allow_pickle=False)
     save_as_np(e.expected_value, saving_dir, 'expected_values', allow_pickle=False)
 
-    if 'classification' == task_cfg[utils_section]['task']:
+    if 'classification' == task_cfg[UTILS]['task']:
         save_as_np(model.classes_, saving_dir, 'classes_order', allow_pickle=False)
         preds = model.predict_proba(X_full)
     else:

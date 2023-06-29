@@ -51,8 +51,8 @@ class Feature(object):
         task = deduce_task(task, s_vals)
         validate_task(task, s_vals)
         if task == Task.CLASSIFICATION:
-            assert len(classes_order) == s_vals.shape[
-                0], f"classes_order shape {classes_order.shape} does not match s_vals shape {s_vals.shape}"
+            assert len(classes_order) == s_vals.shape[0],\
+                f"classes_order length {len(classes_order)} does not match s_vals shape {s_vals.shape}"
         elif task == Task.REGRESSION:
             assert classes_order is None, f"Task is {task} but classes_order is {classes_order}"
         else:

@@ -3,8 +3,9 @@ import sys
 
 import numpy as np
 
+from edo.wrappers import LoggerWrapper
 from edo.utils import find_and_load
-from edo.savingutils import save_as_np, LoggerWrapper
+from edo.savingutils import save_as_np
 
 
 n_args = 1 + 1

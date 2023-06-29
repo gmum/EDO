@@ -13,7 +13,7 @@ from typing import Dict, List, Set, Tuple, Union
 from rdkit import Chem
 from rdkit.Chem.Scaffolds import MurckoScaffold
 
-import metstab_pred.src.training.split_utils as msu
+import edo.training.split_utils as msu
 
 
 def make_mol(s: str, keep_h: bool):

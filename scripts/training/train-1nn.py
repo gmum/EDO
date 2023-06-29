@@ -2,11 +2,11 @@ import os
 import sys
 
 from sklearn.neighbors import KNeighborsClassifier, KNeighborsRegressor
-from edo.config import utils_section, csv_section, metrics_section, force_classification_metrics_section
+from edo.config import UTILS, CSV, METRICS, ADAPTED_CLS_METRICS
 from edo.config import parse_data_config, parse_representation_config, parse_task_config
 from edo.data import load_data
-from edo.utils import force_classification, get_scorer
-from edo.savingutils import save_configs, save_as_json, save_predictions, LoggerWrapper, save_as_pickle
+from edo.wrappers import adapt_to_classification, get_scorer, LoggerWrapper
+from edo.savingutils import save_configs, save_as_json, save_predictions, save_as_pickle
 
 
 # usage
@@ -41,7 +41,7 @@ if __name__=='__main__':
 
 
     # load data (and change to classification if needed)
-    x, y, cv_split, test_x, test_y, smiles, test_smiles = load_data(data_cfg, **repr_cfg[utils_section])
+    x, y, cv_split, test_x, test_y, smiles, test_smiles = load_data(data_cfg, **repr_cfg[UTILS])
 
     # # # saving dataset just in case
     objects = [x, y, smiles, test_x, test_y, test_smiles]
@@ -50,18 +50,18 @@ if __name__=='__main__':
         save_as_pickle(obj, saving_dir, fname)
 
     # change y in case of classification
-    if 'classification' == task_cfg[utils_section]['task']:
-        log_scale = True if 'log' == data_cfg[csv_section]['scale'].lower().strip() else False
-        y = task_cfg[utils_section]['cutoffs'](y, log_scale)
-        test_y = task_cfg[utils_section]['cutoffs'](test_y, log_scale)
+    if 'classification' == task_cfg[UTILS]['task']:
+        log_scale = True if 'log' == data_cfg[CSV]['scale'].lower().strip() else False
+        y = task_cfg[UTILS]['cutoffs'](y, log_scale)
+        test_y = task_cfg[UTILS]['cutoffs'](test_y, log_scale)
 
     # define model
-    if 'classification' == task_cfg[utils_section]['task']:
+    if 'classification' == task_cfg[UTILS]['task']:
         model = KNeighborsClassifier(n_neighbors=1, metric='jaccard')
-    elif 'regression' == task_cfg[utils_section]['task']:
+    elif 'regression' == task_cfg[UTILS]['task']:
         model = KNeighborsRegressor(n_neighbors=1, metric='jaccard')
     else:
-        raise ValueError(f"Task must be `regression` or `classification`. Is {task_cfg[utils_section]['task']}.")
+        raise ValueError(f"Task must be `regression` or `classification`. Is {task_cfg[UTILS]['task']}.")
     
     # no CV because no grid search
     _ = model.fit(x, y)
@@ -82,7 +82,7 @@ if __name__=='__main__':
     all_scores['model_test_score'] = model.score(test_x, test_y)
 
     # # additional scores
-    for score_name in task_cfg[metrics_section].values():
+    for score_name in task_cfg[METRICS].values():
         scorer = get_scorer(score_name)
         try:
             all_scores[f'test_{score_name}'] = scorer(model, test_x, test_y)
@@ -90,16 +90,16 @@ if __name__=='__main__':
             all_scores[f'test_{score_name}'] = 'RuntimeError'
 
     # # for regression models we perform dummy classification
-    if force_classification_metrics_section in task_cfg:
+    if ADAPTED_CLS_METRICS in task_cfg:
         # change data and model to work with classification
-        log_scale = True if 'log' == data_cfg[csv_section]['scale'].lower().strip() else False
-        y = task_cfg[utils_section]['cutoffs'](y, log_scale)
-        test_y = task_cfg[utils_section]['cutoffs'](test_y, log_scale)
-        model = force_classification(model, task_cfg[utils_section]['cutoffs'], log_scale=log_scale)
+        log_scale = True if 'log' == data_cfg[CSV]['scale'].lower().strip() else False
+        y = task_cfg[UTILS]['cutoffs'](y, log_scale)
+        test_y = task_cfg[UTILS]['cutoffs'](test_y, log_scale)
+        model = adapt_to_classification(model, task_cfg[UTILS]['cutoffs'], log_scale=log_scale)
         save_predictions(x, y, cv_split, test_x, test_y, smiles, test_smiles, model, os.path.join(saving_dir, 'forced_classification'))
 
         predictions = model.predict(test_x)
-        for score_name in task_cfg[force_classification_metrics_section].values():
+        for score_name in task_cfg[ADAPTED_CLS_METRICS].values():
             scorer = get_scorer(score_name)
             try:
                 all_scores[f'forced_classification_test_{score_name}'] = scorer(model, test_x, test_y)

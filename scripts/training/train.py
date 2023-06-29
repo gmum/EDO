@@ -1,17 +1,17 @@
 import os
+import os.path as osp
 import sys
 import time
 
 import tpot
 tpot.decorators.MAX_EVAL_SECS = 120
 
-
 import edo.training.grid as grid
-from edo.config import utils_section, csv_section, metrics_section, force_classification_metrics_section
+from edo.config import UTILS, CSV, METRICS, ADAPTED_CLS_METRICS
 from edo.config import parse_model_config, parse_data_config, parse_representation_config, parse_task_config, parse_tpot_config
 from edo.data import load_data
-from edo.utils import force_classification, get_scorer, NanSafeScorer
-from edo.savingutils import save_configs, save_as_json, save_predictions, LoggerWrapper, save_as_pickle
+from edo.wrappers import adapt_to_classification, get_scorer, NanSafeScorer, LoggerWrapper
+from edo.savingutils import save_configs, save_as_json, save_predictions, save_as_pickle
 
 tpot.decorators.MAX_EVAL_SECS = 120  # just in case
 
@@ -50,7 +50,7 @@ if __name__=='__main__':
 
 
     # load data (and change to classification if needed)
-    x, y, cv_split, test_x, test_y, smiles, test_smiles = load_data(data_cfg, **repr_cfg[utils_section])
+    x, y, cv_split, test_x, test_y, smiles, test_smiles = load_data(data_cfg, **repr_cfg[UTILS])
 
     # # # saving dataset just in case
     objects = [x, y, smiles, test_x, test_y, test_smiles]
@@ -59,20 +59,20 @@ if __name__=='__main__':
         save_as_pickle(obj, saving_dir, fname)
 
     # change y in case of classification
-    if 'classification' == task_cfg[utils_section]['task']:
-        log_scale = True if 'log' == data_cfg[csv_section]['scale'].lower().strip() else False
-        y = task_cfg[utils_section]['cutoffs'](y, log_scale)
-        test_y = task_cfg[utils_section]['cutoffs'](test_y, log_scale)
+    if 'classification' == task_cfg[UTILS]['task']:
+        log_scale = True if 'log' == data_cfg[CSV]['scale'].lower().strip() else False
+        y = task_cfg[UTILS]['cutoffs'](y, log_scale)
+        test_y = task_cfg[UTILS]['cutoffs'](test_y, log_scale)
 
     # grid space and tpot configuration
-    grid_space = grid.get_grid(task_cfg[utils_section]['task'], **model_cfg[utils_section])
+    grid_space = grid.get_grid(task_cfg[UTILS]['task'], **model_cfg[UTILS])
 
-    n_jobs = tpot_cfg[utils_section]['n_jobs']
-    max_time_mins = tpot_cfg[utils_section]['max_time_mins']
-    minimal_number_of_models = tpot_cfg[utils_section]['minimal_number_of_models']
+    n_jobs = tpot_cfg[UTILS]['n_jobs']
+    max_time_mins = tpot_cfg[UTILS]['max_time_mins']
+    minimal_number_of_models = tpot_cfg[UTILS]['minimal_number_of_models']
 
 
-    scorer = get_scorer(task_cfg[utils_section]['metric'])
+    scorer = get_scorer(task_cfg[UTILS]['metric'])
     if wrap_score:
         scorer = NanSafeScorer(scorer)
 
@@ -90,14 +90,14 @@ if __name__=='__main__':
         'max_eval_time_mins': n_jobs * max_time_mins // minimal_number_of_models,
         # per model setup
         'scoring': scorer,
-        'periodic_checkpoint_folder': os.path.join(saving_dir, "./tpot_checkpoints")
+        'periodic_checkpoint_folder': osp.join(saving_dir, "./tpot_checkpoints")
          }
 
 
     # run experiment
     logger_wrapper.logger.info(f"Starting time {time.strftime('%Y-%m-%d %H:%M')}")
         
-    TPOTModel = task_cfg[utils_section]['tpot_model']
+    TPOTModel = task_cfg[UTILS]['tpot_model']
     model = TPOTModel(config_dict=grid_space, **tpot_model_kwargs)
 
     _ = model.fit(x, y)
@@ -108,7 +108,7 @@ if __name__=='__main__':
     timestamp = time.strftime('%Y-%m-%d_%H-%M')
     logger_wrapper.logger.info(f"End time {timestamp}")
 
-    model.export(os.path.join(saving_dir, f'{timestamp}-best_model_script.py'))
+    model.export(osp.join(saving_dir, f'{timestamp}-best_model_script.py'))
 
     save_as_json(model.evaluated_individuals_, saving_dir, 'evaluated_individuals.json')
 
@@ -126,29 +126,30 @@ if __name__=='__main__':
     all_scores['grid_test_score'] = model.score(test_x, test_y)
 
     # # additional scores
-    for score_name in task_cfg[metrics_section].values():
+    for score_name in task_cfg[METRICS].values():
         scorer = get_scorer(score_name)
         try:
             all_scores[f'test_{score_name}'] = scorer(model, test_x, test_y)
         except RuntimeError:
             all_scores[f'test_{score_name}'] = 'RuntimeError'
 
-    # # for regression models we perform dummy classification
-    if force_classification_metrics_section in task_cfg:
+    # # regression models can be adapted toclassification
+    if ADAPTED_CLS_METRICS in task_cfg:
         # change data and model to work with classification
-        log_scale = True if 'log' == data_cfg[csv_section]['scale'].lower().strip() else False
-        y = task_cfg[utils_section]['cutoffs'](y, log_scale)
-        test_y = task_cfg[utils_section]['cutoffs'](test_y, log_scale)
-        model = force_classification(model, task_cfg[utils_section]['cutoffs'], log_scale=log_scale)
-        save_predictions(x, y, cv_split, test_x, test_y, smiles, test_smiles, model, os.path.join(saving_dir, 'forced_classification'))
+        log_scale = True if 'log' == data_cfg[CSV]['scale'].lower().strip() else False
+        y = task_cfg[UTILS]['cutoffs'](y, log_scale)
+        test_y = task_cfg[UTILS]['cutoffs'](test_y, log_scale)
+        model = adapt_to_classification(model, task_cfg[UTILS]['cutoffs'], log_scale=log_scale)
+        save_predictions(x, y, cv_split, test_x, test_y, smiles, test_smiles, model,
+                         osp.join(saving_dir, 'adapted_classification'))
 
         predictions = model.predict(test_x)
-        for score_name in task_cfg[force_classification_metrics_section].values():
+        for score_name in task_cfg[ADAPTED_CLS_METRICS].values():
             scorer = get_scorer(score_name)
             try:
-                all_scores[f'forced_classification_test_{score_name}'] = scorer(model, test_x, test_y)
+                all_scores[f'adapted_classification_test_{score_name}'] = scorer(model, test_x, test_y)
             except RuntimeError:
-                all_scores[f'forced_classification_test_{score_name}'] = 'RuntimeError'
+                all_scores[f'adapted_classification_test_{score_name}'] = 'RuntimeError'
 
     logger_wrapper.logger.info(all_scores)
     save_as_json(all_scores, saving_dir, 'best_model_scores.json')

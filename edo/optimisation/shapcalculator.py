@@ -9,9 +9,9 @@ from functools import lru_cache
 
 from .sample import Sample
 from .. import Task, TASK_ERROR_MSG, make_origin
-from ..config import parse_shap_config, utils_section
+from ..config import parse_shap_config, UTILS
 from ..utils import find_and_load, get_configs_and_model, usv
-from ..data import Unloger
+from ..wrappers import Unloger
 from ..shap_analysis._check import _check_unlogging
 
 
@@ -20,13 +20,13 @@ class SHAPCalculator(object):
         # shapdir - load shap_cfg and background data
         shap_cfg = parse_shap_config(
             usv([osp.join(shapdir, f) for f in os.listdir(shapdir) if 'shap' in f and 'cfg' in f]))
-        unlog = shap_cfg[utils_section]["unlog"]
-        link = shap_cfg[utils_section]["link"]
+        unlog = shap_cfg[UTILS]["unlog"]
+        link = shap_cfg[UTILS]["link"]
         background_data = find_and_load(shapdir, "background_data.pickle", protocol='pickle')
 
         # mldir - load model and get Task info
         _, _, task_cfg, _, model_path = get_configs_and_model(mldir)
-        task = Task(task_cfg[utils_section]['task'])
+        task = Task(task_cfg[UTILS]['task'])
         model = find_and_load(mldir, osp.basename(model_path), protocol='pickle')
 
         if check_unlogging:

@@ -9,7 +9,7 @@ from tqdm import tqdm
 
 from edo import Task, TASK_ERROR_MSG
 from edo.utils import get_configs_and_model
-from edo.config import utils_section, csv_section
+from edo.config import UTILS, CSV
 from edo.data import unlog_stability
 
 from edo.shap_analysis import Category
@@ -47,7 +47,7 @@ def test_get_smiles_true_predicted(smiles_order, true_ys, preds, task, classes_o
 def test_get_smiles_correct(smiles_true_predicted_df, task, task_cfg, data_cfg, classes_order):
     correct_smiles = get_smiles_correct(smiles_true_predicted_df, task, task_cfg, data_cfg, classes_order)
     
-    if data_cfg[csv_section]['scale'] != 'log':
+    if data_cfg[CSV]['scale'] != 'log':
         raise NotImplementedError
     log_scale = True
 
@@ -63,7 +63,7 @@ def test_get_smiles_correct(smiles_true_predicted_df, task, task_cfg, data_cfg, 
         
     elif task == Task.CLASSIFICATION:
         for smi in smiles_true_predicted_df.index:
-            true_class = task_cfg[utils_section]['cutoffs'](smiles_true_predicted_df.loc[smi].true, log_scale)
+            true_class = task_cfg[UTILS]['cutoffs'](smiles_true_predicted_df.loc[smi].true, log_scale)
             predicted_class = np.argmax([smiles_true_predicted_df.loc[smi].UNSTABLE,
                                          smiles_true_predicted_df.loc[smi].MEDIUM,
                                          smiles_true_predicted_df.loc[smi].STABLE])
@@ -80,14 +80,14 @@ def test_get_smiles_correct(smiles_true_predicted_df, task, task_cfg, data_cfg, 
 def test_get_smiles_stability_value(smiles_true_predicted_df, data_cfg, task_cfg):
     low, med, high = get_smiles_stability_value(smiles_true_predicted_df, data_cfg, task_cfg)
 
-    if data_cfg[csv_section]['scale'] != 'log':
+    if data_cfg[CSV]['scale'] != 'log':
         raise NotImplementedError
     log_scale = True
 
     low_smis, med_smis, high_smis = [], [], []
 
     for smi in smiles_true_predicted_df.index:
-        true_class = task_cfg[utils_section]['cutoffs'](smiles_true_predicted_df.loc[smi].true, log_scale)
+        true_class = task_cfg[UTILS]['cutoffs'](smiles_true_predicted_df.loc[smi].true, log_scale)
 
         if true_class == 0:
             low_smis.append(smi)
@@ -214,7 +214,7 @@ def all_tests(some_model, some_shaps):
     # data preparation
     data_cfg, repr_cfg, task_cfg, model_cfg, model_pickle = get_configs_and_model(some_model)
     x_train, x_test, smiles_train, smiles_test = load_ml_files(some_model)
-    task = Task(task_cfg[utils_section]['task'])
+    task = Task(task_cfg[UTILS]['task'])
     shap_cfg, smiles_order, X_full, morgan_repr, true_ys, preds, classes_order, expected_values, shap_values, background_data = load_shap_files(some_shaps, task)
     X_full_df = pd.DataFrame(X_full, columns=list(range(X_full.shape[1])), index=smiles_order)
 
@@ -255,7 +255,8 @@ def all_tests(some_model, some_shaps):
 
 if __name__=="__main__":
     directory = '/home/pocha/dane_phd/random_split/'
-    
+
+    print("Testing shap_analysis module...")
     pbar = tqdm(os.listdir(osp.join(directory, 'ml')))
     for exp in pbar:
         pbar.set_description("Running tests... %s" % exp)
