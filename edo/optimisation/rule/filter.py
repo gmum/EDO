@@ -1,8 +1,8 @@
 from copy import deepcopy
 from collections import defaultdict
 
-from .. import Task
-from ..shap_analysis.categorisation import SeparationResult, HighImpactResult
+from ... import Task
+from ..categorisation import SeparationResult, HighImpactResult
 
 
 # # # # # # # # # # # # # # # # # # # # # # #

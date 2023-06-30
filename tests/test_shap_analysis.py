@@ -1,5 +1,4 @@
 import os
-import sys
 
 import os.path as osp
 import numpy as np
@@ -14,8 +13,8 @@ from edo.data import unlog_stability
 
 from edo.optimisation.utils import get_present_features
 
-from edo.shap_analysis.categorisation import well_separated
-from edo.shap_analysis.categorisation.utils import purity
+from edo.optimisation.categorisation import well_separated
+from edo.optimisation.categorisation.utils import purity
 
 from utils import load_shap_files, load_ml_files, e, enough
 from utils import get_smiles_true_predicted, get_smiles_correct, get_smiles_stability_value, filter_samples, Stability

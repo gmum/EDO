@@ -8,7 +8,7 @@ import pandas as pd
 from edo import Task, TASK_ERROR_MSG
 from edo.utils import find_and_load, index_of_smiles
 from edo.config import UTILS, CSV, parse_shap_config
-from edo.data import unlog_stability, load_and_preprocess
+from edo.data import unlog_stability
 
 
 # # # # # # # # # # # # # # # #

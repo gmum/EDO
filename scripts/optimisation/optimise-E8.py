@@ -6,25 +6,24 @@ import argparse
 import numpy as np
 import pandas as pd
 
-
 from edo import make_origin, Task
 from edo.savingutils import make_directory, save_as_json, get_timestamp
 from edo.wrappers import LoggerWrapper
 
-from optimisation.utils import get_present_features
-from utils import index_of_smiles
+from edo.optimisation.utils import get_present_features
+from edo.utils import index_of_smiles
 
 from edo.optimisation import Goal, set_seed, get_random_generator
 
 from edo.optimisation.utils import find_experiment, load_train_test, load_predictions, load_shap_files, load_model
 from edo.optimisation.utils import filter_correct_predictions_only, group_samples, intersection_list
-from edo.optimisation.filter_rules import condition_well_separated, condition_high_impact
+from edo.optimisation.rule.filter import condition_well_separated, condition_high_impact
 
-from edo.shap_analysis.feature import make_features
-from edo.optimisation.generate_rules import derive_well_separated_two_way_rules, derive_high_impact_rules
-from edo.optimisation.generate_rules import derive_random_rules_sample
-from edo.optimisation.filter_rules import filter_rules, filter_out_unimportant
-from edo.optimisation.filter_rules import filter_contradictive_soft, rebel_rules_stats
+from edo.optimisation.feature import make_features
+from edo.optimisation.rule.generate import derive_well_separated_two_way_rules, derive_high_impact_rules
+from edo.optimisation.rule.generate import derive_random_rules_sample
+from edo.optimisation.rule.filter import filter_rules, filter_out_unimportant
+from edo.optimisation.rule.filter import filter_contradictive_soft, rebel_rules_stats
 from edo.optimisation.sample import make_samples
 from edo.optimisation.scenario import optimise
 

@@ -1,9 +1,8 @@
 import os.path as osp
 import numpy as np
-import pandas as pd
 
 from edo import Task
-from edo.config import UTILS, CSV
+from edo.config import UTILS
 from edo.utils import get_configs_and_model
 
 from utils import load_shap_files, load_ml_files, get_smiles_true_predicted, get_smiles_correct, Stability

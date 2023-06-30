@@ -1,5 +1,3 @@
-import os.path as osp
-import json
 
 import numpy as np
 

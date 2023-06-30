@@ -4,7 +4,7 @@ import pandas as pd
 from collections import Counter
 
 from .. import Task, TASK_ERROR_MSG
-from ..shap_analysis.categorisation import SeparationResult, HighImpactResult, RandomRule
+from .categorisation import SeparationResult, HighImpactResult, RandomRule
 from .utils import get_predictions_before_after, _get_pred_single_sample
 
 

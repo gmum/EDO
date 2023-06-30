@@ -1,8 +1,8 @@
 import operator
 import numpy as np
-from edo.shap_analysis.feature import Feature
 
-from edo.shap_analysis.categorisation.utils import n_zeros_ones, purity, majority
+from edo.optimisation.feature import Feature
+from edo.optimisation.categorisation.utils import n_zeros_ones, purity, majority
 
 
 def test_n_zeros_ones(n=1000, max_size=1000):

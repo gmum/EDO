@@ -1,10 +1,10 @@
 import itertools
 import operator
 
-from . import Goal, get_random_generator
-from .rule import Rule
-from .. import Task, TASK_ERROR_MSG
-from ..shap_analysis.categorisation import RandomRule
+from .. import Goal, get_random_generator
+from . import Rule
+from ... import Task, TASK_ERROR_MSG
+from ..categorisation import RandomRule
 
 
 def derive_well_separated_two_way_rules(ftr, task):

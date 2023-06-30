@@ -3,7 +3,6 @@ from collections import namedtuple
 
 import numpy as np
 
-from ._relation import make_relation
 
 RNG = np.random.default_rng(0)
 

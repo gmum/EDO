@@ -1,10 +1,10 @@
 from copy import deepcopy
 
-from . import Goal, optimise
 from ._relation import make_relation
-from .. import make_origin
-from .._check import validate_index, assert_binary
-from ..shap_analysis.categorisation import result_as_dict
+from .. import Goal, optimise
+from ..categorisation import result_as_dict
+from ... import make_origin
+from ..._check import validate_index, assert_binary
 
 
 class Rule(object):

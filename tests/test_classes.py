@@ -5,19 +5,19 @@ import numpy as np
 from edo import make_origin, Task, TASK_ERROR_MSG
 from edo.data import cutoffs_metstabon
 from edo.utils import index_of_smiles
-from edo.shap_analysis.feature import make_features
+from edo.optimisation.feature import make_features
 from edo.optimisation.utils import get_present_features
-from edo.shap_analysis.categorisation import SeparationResult, HighImpactResult, RandomRule
+from edo.optimisation.categorisation import SeparationResult, HighImpactResult, RandomRule
 from edo.optimisation import Goal
 from edo.optimisation.utils import load_train_test, load_shap_files, load_predictions, load_model, find_experiment
-from edo.optimisation.generate_rules import derive_well_separated_two_way_rules, derive_high_impact_rules
-from edo.optimisation.generate_rules import derive_random_rules_sample
+from edo.optimisation.rule.generate import derive_well_separated_two_way_rules, derive_high_impact_rules
+from edo.optimisation.rule.generate import derive_random_rules_sample
 from edo.optimisation.sample import make_samples
 
 from edo.optimisation.utils import get_predictions_before_after, get_predictions_before_after_slow
 from edo.optimisation.utils import filter_correct_predictions_only, group_samples, intersection_list, difference_list
-from edo.optimisation.filter_rules import filter_rules, condition_well_separated, condition_high_impact
-from edo.optimisation.filter_rules import filter_out_unimportant
+from edo.optimisation.rule.filter import filter_rules, condition_well_separated, condition_high_impact
+from edo.optimisation.rule.filter import filter_out_unimportant
 
 
 class TestOptimisationUtils(unittest.TestCase):
