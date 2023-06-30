@@ -1,5 +1,7 @@
 import numpy as np
 
+from edo import Task
+
 
 def assert_binary(a):
     assert set(np.unique(a)).issubset({0, 1}), f"Values in `a` must be in {{0, 1}}, are {np.unique(a)}."
@@ -37,3 +39,9 @@ def validate_index(i, size=None):
     assert i >= 0, ValueError(f"index must be nonnegative, is {i}.")
     if size is not None:
         assert i < size, ValueError(f"index must be smaller than {size}, is {i}.")
+
+
+def validate_task(task, s_vals):
+    # TODO: dwa razy sprawdzamy to samo, choose one
+    assert (task == Task.CLASSIFICATION and len(s_vals.shape) == 2) or (task == Task.REGRESSION and len(s_vals.shape) == 1), f"`s_vals.shape` and task mismatch. `s_vals` must be 1- (regression) or 2-dimensional array (classification), is {s_vals.shape} and task {task}."
+    assert (len(s_vals.shape), task) in [(1, Task.REGRESSION), (2, Task.CLASSIFICATION)], f"`s_vals.shape` and `task` mismatch. `s_vals` must be 1- (regression) or 2-dimensional array (classification), is {s_vals.shape} and task is {task}."

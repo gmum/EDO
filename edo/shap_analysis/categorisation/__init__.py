@@ -9,6 +9,7 @@ class Region(namedtuple('Region', ['majority', 'purity', 'n_correct', 'indices',
     def __str__(self):
         return "Region(" + ', '.join([f"{attr}={np.round(getattr(self, attr), 3)}" for attr in self._asdict() if attr not in ['indices'] ]) + ")"
 
+
 SeparationResult = namedtuple('SeparationResult', ['score', 'thresholds', 'regions', 'params'])
 HighImpactResult = namedtuple('HighImpactResult', ['score', 'loss_region', 'gain_region', 'params'])
 UnimportantResult = namedtuple('UnimportantResult', ['score', 'params'])

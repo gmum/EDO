@@ -126,8 +126,7 @@ def derive_random_rules_all(ftr, task):
 
     elif task == Task.REGRESSION:
         raise NotImplementedError  # Napisane na sucho, nigdy nie odpalone.
-        params = {'class_index': None, 'class_name': None,
-                  'criterion_reference_point': 0}
+        params = {'class_index': None, 'class_name': None, 'criterion_reference_point': 0}
         individual_params.append(params)
     else:
         raise ValueError(TASK_ERROR_MSG(task))

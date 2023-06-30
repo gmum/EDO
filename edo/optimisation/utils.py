@@ -6,7 +6,7 @@ import pandas as pd
 from copy import deepcopy
 
 from .. import make_origin, Task, TASK_ERROR_MSG
-from ..shap_analysis._check import _check_unlogging
+from ._check import _check_unlogging
 from ..utils import find_and_load, get_all_subfolders, get_all_files, usv
 from ..config import parse_shap_config, UTILS
 
@@ -192,3 +192,23 @@ def difference_list(*argv):
     sets = [set(arg) for arg in argv]
     difference = sets[0].difference(*sets[1:])
     return sorted(list(difference))
+
+
+def get_present_features(x_train, threshold):
+    """
+    this returns indices of features that are present and absent
+    in at least (treshold * n_samples) molecules in the training set
+    """
+
+    n_samples = x_train.shape[0]
+    summed = np.sum(x_train != 0, axis=0)
+    assert summed.shape[0] == x_train.shape[1]
+
+    # threshold must be met from both ends
+    sufficient = summed/n_samples >= threshold  # sufficient is array of bools
+    not_too_many = summed/n_samples <= (1 - threshold)
+    satisfied = np.logical_and(sufficient, not_too_many)
+
+    # todo: może dopisać też po nazwach?
+
+    return sorted(list(set(np.array(range(len(satisfied)))[satisfied])))

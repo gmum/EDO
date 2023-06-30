@@ -12,16 +12,15 @@ from edo.utils import get_configs_and_model
 from edo.config import UTILS, CSV
 from edo.data import unlog_stability
 
-from edo.shap_analysis import Category
-from edo.shap_analysis.utils import load_shap_files, load_ml_files
-from edo.shap_analysis.preprocessing import get_smiles_true_predicted, get_smiles_correct, get_smiles_stability_value
-from edo.shap_analysis.preprocessing import get_present_features, filter_samples
-from edo.shap_analysis.preprocessing import e, enough
+from edo.optimisation.utils import get_present_features
 
-from edo.shap_analysis.analyses import find_optimal_separation_point, situation_at_threshold
 from edo.shap_analysis.categorisation import well_separated
 from edo.shap_analysis.categorisation.utils import purity
-from edo.shap_analysis.categorisation.test_separation_point import find_optimal_separation_point as kfind, SeparationType
+
+from utils import load_shap_files, load_ml_files, e, enough
+from utils import get_smiles_true_predicted, get_smiles_correct, get_smiles_stability_value, filter_samples, Stability
+from well_separated_utils import find_optimal_separation_point, situation_at_threshold
+from test_separation_point import find_optimal_separation_point as kfind, SeparationType
 
 
 def test_get_smiles_true_predicted(smiles_order, true_ys, preds, task, classes_order):
@@ -38,7 +37,7 @@ def test_get_smiles_true_predicted(smiles_order, true_ys, preds, task, classes_o
         if task == Task.REGRESSION:
             assert smiles_true_predicted_df.loc[al_smi].predicted == al_pred, print(smiles_true_predicted_df.loc[al_smi].predicted - al_pred)
         elif task == Task.CLASSIFICATION:
-            class_columns = [Category(i).name for i in  classes_order]
+            class_columns = [Stability(i).name for i in classes_order]
             assert all(smiles_true_predicted_df.loc[al_smi, class_columns] == al_pred), print(smiles_true_predicted_df.loc[al_smi].predicted - al_pred)
         else:
             raise ValueError(TASK_ERROR_MSG(task))

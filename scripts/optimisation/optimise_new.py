@@ -10,8 +10,8 @@ from edo import make_origin, Task, TASK_ERROR_MSG
 from edo.savingutils import make_directory, save_as_json, get_timestamp
 from edo.wrappers import LoggerWrapper
 
-from edo.shap_analysis.preprocessing import get_present_features
-from edo.shap_analysis.utils import index_of_smiles
+from optimisation.utils import get_present_features
+from utils import index_of_smiles
 
 from edo.optimisation import Goal, set_seed, get_random_generator
 

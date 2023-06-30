@@ -3,8 +3,7 @@ from collections import defaultdict
 import numpy as np
 
 from .categorisation import well_separated, high_impact, unimportant
-from ._check import validate_task
-from .._check import validate_shapes, validate_index
+from .._check import validate_shapes, validate_index, validate_task
 from .. import make_origin, Task, deduce_task, TASK_ERROR_MSG
 
 
@@ -28,8 +27,7 @@ def make_features(features, samples, feature_values, shap_values, classes_order,
         else:
             raise ValueError(TASK_ERROR_MSG(task))
 
-        ft = Feature(f_vals, s_vals, origin=origin, ftr_index=ftr_index,
-                     classes_order=classes_order, task=task,
+        ft = Feature(f_vals, s_vals, origin=origin, ftr_index=ftr_index, classes_order=classes_order, task=task,
                      name=f"F{ftr_index}")
         my_features.append(ft)
 
@@ -75,9 +73,6 @@ class Feature(object):
         self._selectively_important = defaultdict(dict)  # {metric: {miu: [SelectivelyImportantResult,...]}}
         self._unimportant = defaultdict(dict)  # {metric: {miu: [UnimportantResult,...]}}
 
-        # other cache
-        self._importance = np.mean(np.abs(self._shap_values))
-
     def __str__(self, ):
         return f"Name: {self.name}, n_samples: {self._nsamples}, {self._task}"
 
@@ -118,7 +113,6 @@ class Feature(object):
         finally:
             return self._high_impact[metric][gamma]
 
-
     def unimportant(self, miu, metric):
         try:
             return self._unimportant[metric][miu]
@@ -127,6 +121,3 @@ class Feature(object):
                                                          metric)
         finally:
             return self._unimportant[metric][miu]
-
-    def importance(self, ):
-        return self._importance

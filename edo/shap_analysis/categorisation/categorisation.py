@@ -20,16 +20,12 @@ def well_separated(feature_values, shap_values, task, n_way=2, kwargs={}):
     func = two_way_separation if n_way == 2 else three_way_separation
     return _calculate(feature_values, shap_values, func, kwargs, task)
     
-    
 
 def high_impact(feature_values, shap_values, task, gamma, metric):
     func = _high_impact
-    return _calculate(feature_values, shap_values,
-                      func, {'gamma':gamma, 'metric':metric}, task)
-
+    return _calculate(feature_values, shap_values, func, {'gamma':gamma, 'metric':metric}, task)
 
 
 def unimportant(feature_values, shap_values, task, miu, metric):
     func = _unimportant
-    return _calculate(feature_values, shap_values,
-                      func, {'miu':miu, 'metric':metric}, task)
+    return _calculate(feature_values, shap_values, func, {'miu':miu, 'metric':metric}, task)

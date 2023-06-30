@@ -1,15 +1,14 @@
-import numpy as np
+import os
+import os.path as osp
+from copy import deepcopy
+from enum import Enum
+
 import pandas as pd
 
-from copy import deepcopy
-
-from .. import Task, TASK_ERROR_MSG
-from ..config import UTILS, CSV
-from ..data import unlog_stability
-from ..utils import get_configs_and_model#, find_and_load
-
-from . import Category
-from .utils import load_shap_files, load_ml_files, index_of_smiles
+from edo import Task, TASK_ERROR_MSG
+from edo.utils import find_and_load, index_of_smiles
+from edo.config import UTILS, CSV, parse_shap_config
+from edo.data import unlog_stability, load_and_preprocess
 
 
 # # # # # # # # # # # # # # # #
@@ -21,14 +20,47 @@ tanimoto_threshold = 0.3
 # # # # # # # # # # # # # # # #
 
 
+def load_ml_files(directory):
+    x_train = find_and_load(directory, '-x.pickle', protocol='pickle')
+    x_test = find_and_load(directory, '-test_x.pickle', protocol='pickle')
+
+    smiles_train = find_and_load(directory, '-smiles.pickle', protocol='pickle')
+    smiles_test = find_and_load(directory, '-test_smiles.pickle', protocol='pickle')
+
+    return x_train, x_test, smiles_train, smiles_test
+
+
+def load_shap_files(directory, task, check_unlogging=True):
+    shap_cfg = parse_shap_config \
+        ([osp.join(directory, f) for f in os.listdir(directory) if 'shap' in f and 'cfg' in f][0])
+    if check_unlogging and task == Task.REGRESSION:
+        assert shap_cfg[UTILS]["unlog"], f"{directory} contains SHAP values for an estimator that was not unlogged!"
+
+    smiles_order = find_and_load(directory, 'canonised.npy', protocol='numpy')
+    X_full = find_and_load(directory, 'X_full.npy', protocol='numpy')
+    morgan_repr = find_and_load(directory, "morgans.npy", protocol='numpy')
+    true_ys = find_and_load(directory, 'true_ys.npy', protocol='numpy')
+    preds = find_and_load(directory, 'predictions', protocol='numpy')
+    expected_values = find_and_load(directory, 'expected_values.npy', protocol='numpy')
+    shap_values = find_and_load(directory, 'SHAP_values.npy', protocol='numpy')
+    background_data = find_and_load(directory, 'background_data.pickle', protocol='pickle')
+
+    if task == Task.CLASSIFICATION:
+        classes_order = find_and_load(directory, 'classes_order.npy', protocol='numpy')
+    elif task == Task.REGRESSION:
+        classes_order = None
+    else:
+        raise ValueError(TASK_ERROR_MSG(task))
+
+    return shap_cfg, smiles_order, X_full, morgan_repr, true_ys, preds, classes_order, expected_values, shap_values, background_data
 
 
 def get_smiles_true_predicted(smiles_order, true_ys, preds, task, classes_order):
     d = {}
     columns = ['true', ]
-    
+
     if task == Task.CLASSIFICATION:
-        columns.extend(Category(i).name for i in  classes_order)
+        columns.extend(Stability(i).name for i in classes_order)
         for i in range(len(smiles_order)):
             d[smiles_order[i]] = true_ys[i], *preds[i]
     elif task == Task.REGRESSION:
@@ -37,7 +69,7 @@ def get_smiles_true_predicted(smiles_order, true_ys, preds, task, classes_order)
             d[smiles_order[i]] = true_ys[i], preds[i]
     else:
         raise ValueError(TASK_ERROR_MSG(task))
-    
+
     smiles_true_predicted_df = pd.DataFrame.from_dict(d, orient='index', columns=columns)
     return smiles_true_predicted_df
 
@@ -45,21 +77,21 @@ def get_smiles_true_predicted(smiles_order, true_ys, preds, task, classes_order)
 def get_smiles_correct(smiles_true_predicted_df, task, task_cfg, data_cfg, classes_order):
     # 1 b) zostawienie wyłącznie poprawnych
     correct = deepcopy(smiles_true_predicted_df)
-    
+
     if data_cfg[CSV]['scale'] is None:
             log_scale = False
     elif 'log' == data_cfg[CSV]['scale']:
         log_scale = True
     else:
         raise NotImplementedError(f"scale {data_cfg[CSV]['scale']} is not implemented.")
-    
+
     if task == Task.CLASSIFICATION:
-        class_cols = [Category(i).name for i in classes_order]
-               
+        class_cols = [Stability(i).name for i in classes_order]
+
         correct['true_class'] = correct.apply(lambda row: task_cfg[UTILS]['cutoffs'](float(row.true), log_scale=log_scale), axis=1)
         correct['predicted_class'] = correct.apply(lambda row: pd.to_numeric(row.loc[class_cols]).nlargest(1).index[0], axis=1)
-        correct = correct[correct.predicted_class == correct.true_class.apply(lambda c: Category(c).name)]
-    
+        correct = correct[correct.predicted_class == correct.true_class.apply(lambda c: Stability(c).name)]
+
     elif task == Task.REGRESSION:
         if log_scale:
             correct['true_h'] = correct.apply(lambda row: unlog_stability(pd.to_numeric(row.true)), axis=1)
@@ -67,13 +99,13 @@ def get_smiles_correct(smiles_true_predicted_df, task, task_cfg, data_cfg, class
         else:
             correct['true_h'] = correct.true
             correct['predicted_h'] = correct.predicted
-        
+
         correct['within_limits'] = correct.apply(lambda row: (1-e)*row.true_h <= row.predicted_h <= (1+e)*row.true_h, axis=1)
         correct['within_limits'] = correct.apply(lambda row: row.within_limits or (row.true_h >= enough and row.predicted_h >= enough), axis=1)
         correct = correct[correct.within_limits == True]
     else:
         raise ValueError(TASK_ERROR_MSG(task))
-        
+
     return set(correct.index)
 
 
@@ -98,26 +130,6 @@ def get_smiles_stability_value(smiles_true_predicted_df, data_cfg, task_cfg):
     return set(low.index), set(med.index), set(high.index)
 
 
-def get_present_features(x_train, threshold):
-    """
-    this returns indices of features that are present and absent
-    in at least (treshold * n_samples) molecules in the training set
-    """
-    
-    n_samples = x_train.shape[0]
-    summed = np.sum(x_train != 0, axis=0)
-    assert summed.shape[0] == x_train.shape[1]
-    
-    # threshold must be met from both ends
-    sufficient = summed/n_samples >= threshold  # sufficient is array of bools
-    not_too_many = summed/n_samples <= (1 - threshold)
-    satisfied = np.logical_and(sufficient, not_too_many)
-    
-    # todo: może dopisać też po nazwach?
-    
-    return sorted(list(set(np.array(range(len(satisfied)))[satisfied])))
-
-
 def filter_samples(mol_filter, feature_filter, X_full, shap_values, task, smiles_order):
     # ordering is important
     if isinstance(mol_filter, set):
@@ -138,3 +150,15 @@ def filter_samples(mol_filter, feature_filter, X_full, shap_values, task, smiles
         raise ValueError(TASK_ERROR_MSG(task))
 
     return filtered_X, filtered_df, filtered_shaps, mol_filter, mol_indices, feature_filter
+
+
+class Stability(Enum):
+    UNSTABLE = 0
+    MEDIUM = 1
+    STABLE = 2
+
+
+class Relation(Enum):
+    # TODO: should be renamed, we have relation in src.optimisation
+    MOST = 'most'
+    LEAST = 'least'

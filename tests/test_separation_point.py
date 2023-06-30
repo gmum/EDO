@@ -2,13 +2,11 @@ import os.path as osp
 import numpy as np
 import pandas as pd
 
-from ... import Task
-from ...config import UTILS, CSV
-from ...utils import get_configs_and_model, find_and_load
-from .. import Category
-from ..utils import load_shap_files, load_ml_files, index_of_smiles
-from ..preprocessing import get_smiles_true_predicted, get_smiles_correct
+from edo import Task
+from edo.config import UTILS, CSV
+from edo.utils import get_configs_and_model
 
+from utils import load_shap_files, load_ml_files, get_smiles_true_predicted, get_smiles_correct, Stability
 
 ##############################################
 ### Kamila zupelnie straszna implementacja ###
@@ -16,6 +14,7 @@ from ..preprocessing import get_smiles_true_predicted, get_smiles_correct
 
 import dataclasses
 from enum import Enum
+
 
 def get_feature_index(feature_order, feature_name):
     if type(feature_order) is np.ndarray:
@@ -164,7 +163,6 @@ def find_optimal_separation_point(shaps, X, feature_order, feature_name, task, c
 
 
 if __name__=="__main__":
-    data_path = '/home/kamil/workspace/python/metabolic-stability-prediction/data/2021-04-papier-webservice'
     data_path = '/home/pocha/dane_doktorat'
     
     exp = 'h-ma-c-trees'

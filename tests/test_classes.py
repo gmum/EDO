@@ -4,9 +4,9 @@ import numpy as np
 
 from edo import make_origin, Task, TASK_ERROR_MSG
 from edo.data import cutoffs_metstabon
-from edo.shap_analysis.utils import index_of_smiles
+from edo.utils import index_of_smiles
 from edo.shap_analysis.feature import make_features
-from edo.shap_analysis.preprocessing import get_present_features
+from edo.optimisation.utils import get_present_features
 from edo.shap_analysis.categorisation import SeparationResult, HighImpactResult, RandomRule
 from edo.optimisation import Goal
 from edo.optimisation.utils import load_train_test, load_shap_files, load_predictions, load_model, find_experiment

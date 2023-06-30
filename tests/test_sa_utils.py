@@ -7,7 +7,7 @@ import numpy as np
 from edo.utils import get_all_subfolders
 from edo.optimisation.utils import load_train_test
 
-from edo.shap_analysis.utils import index_of_smiles
+from utils import index_of_smiles
 
 
 class TestIndexOfSmiles(unittest.TestCase):

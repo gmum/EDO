@@ -27,7 +27,7 @@ class Rule(object):
         used to check if Criterion is satisfied
         in the case of classification index of class for which Rule is derived,
         in the case of regression should be None
-    class_name: str (#TODO: maybe ..shap_analysis.Stability would be better?) or None
+    class_name: str or None
         used to check if two Rules are contradictory
         in the case of classification name of class for which Rule is derived
         (mapping between classes and their indices can be different for each model)
