@@ -1,12 +1,18 @@
+import numpy as np
 from collections import namedtuple
 from copy import deepcopy
-import numpy as np
 from sklearn.svm import SVC, SVR
 from tpot.config.classifier import classifier_config_dict
 from tpot.config.regressor import regressor_config_dict
 
 
 def get_grid(task, model):
+    """
+    Get grid space for a specific task and model
+    :param task: str: `classification` or `regression`
+    :param model: str: model name
+    :return: dict: grid space compatible with TPOT
+    """
     task = task.lower().strip()
     model = model.lower().strip()
     if 'classification' == task:
@@ -17,19 +23,19 @@ def get_grid(task, model):
         elif model in ['nb', 'naive-bayes', 'naive_bayes']:
             return get_nb_classification_grid()
         else:
-            raise ValueError(f'For classification `model` parameter must be `svm`, `tree` or `nb`, is {model}.')
+            raise ValueError(f'For classification, `model` must be `svm`, `tree` or `nb`, is {model}.')
     elif 'regression' == task:
         if 'svm' == model:
             return get_svm_regression_grid()
         elif model in ['tree', 'trees']:
             return get_tree_regression_grid()
         else:
-            raise ValueError(f'For regression `model` parameter must be `svm` or `tree`, is {model}.')
+            raise ValueError(f'For regression, `model` must be `svm` or `tree`, is {model}.')
     else:
-        raise ValueError(f'`task` parameter must be `classification` or `regression`, is {task}.')
+        raise ValueError(f'`task` must be `classification` or `regression`, is {task}.')
 
 
-# dummy classes
+# dummy classes (TPOT workaround)
 class SVC_rbf(SVC):
     pass
 
@@ -55,6 +61,15 @@ class SVR_sigmoid(SVR):
 
 
 def remove_classifiers(config_dict, remove_nb=False, remove_trees=False, remove_svms=False, remove_other=True):
+    """
+    Remove needless classifiers.
+    :param config_dict: tpot.config.classifier.classifier_config_dict: config to filter
+    :param remove_nb: True if naive Bayes classifiers should be removed else False
+    :param remove_trees: True if tree-based models should be removed else False
+    :param remove_svms: True if SVMs should be removed else False
+    :param remove_other: True if any other classifiers should be removed as well else False
+    :return: updated config_dict
+    """
     nbs = []
     svms = []
     trees = []
@@ -95,6 +110,14 @@ def remove_classifiers(config_dict, remove_nb=False, remove_trees=False, remove_
 
 
 def remove_regressors(config_dict, remove_trees=False, remove_svms=False, remove_other=True):
+    """
+    Remove needless regressors.
+    :param config_dict: from tpot.config.regressor.regressor_config_dict
+    :param remove_trees: True if tree-based models should be removed else False
+    :param remove_svms: True if SVMs should be removed else False
+    :param remove_other: True if any other regressors should be removed as well else False
+    :return: updated config_dict
+    """
     svms = []
     trees = []
     other_classifiers = []
@@ -128,82 +151,88 @@ def remove_regressors(config_dict, remove_trees=False, remove_svms=False, remove
     return config_dict
 
 
-def get_svm_config():
-    SVM_config = namedtuple('SVM_config', ['c', 'gamma', 'coef0', 'degree', 'tol', 'epsilon', 'max_iter', 'probability'])
-    cfg = SVM_config(c=[0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 15.0, 20.0, 25.0],
-                     gamma=['auto', 'scale'] + [10 ** i for i in range(-6, 0)],
-                     coef0=[-10 ** i for i in range(-6, 0)] + [0.0] + [10 ** i for i in range(-1, -7, -1)],
-                     degree=list(range(1, 10)),
-                     tol=[1e-05, 0.0001, 0.001, 0.01, 0.1],
-                     epsilon=[0.0001, 0.001, 0.01, 0.1, 1.0],
-                     max_iter=[2000,], probability=[True,])
+def get_svm_grid_space():
+    """Grid space for SVMs"""
+    SVMGridSpace = namedtuple('SVMGridSpace',
+                              ['c', 'gamma', 'coef0', 'degree', 'tol', 'epsilon', 'max_iter', 'probability'])
+    cfg = SVMGridSpace(c=[0.0001, 0.001, 0.01, 0.1, 0.5, 1.0, 5.0, 10.0, 15.0, 20.0, 25.0],
+                       gamma=['auto', 'scale'] + [10 ** i for i in range(-6, 0)],
+                       coef0=[-10 ** i for i in range(-6, 0)] + [0.0] + [10 ** i for i in range(-1, -7, -1)],
+                       degree=list(range(1, 10)),
+                       tol=[1e-05, 0.0001, 0.001, 0.01, 0.1],
+                       epsilon=[0.0001, 0.001, 0.01, 0.1, 1.0],
+                       max_iter=[2000, ], probability=[True, ])
     return cfg
 
 
 def get_svm_classification_grid():
-    cfg = get_svm_config()
+    """Grid space for classification SVMs"""
+    cfg = get_svm_grid_space()
 
     cache_size = 100
     svc_rbf = {'C': cfg.c, 'gamma': cfg.gamma, 'tol': cfg.tol,
                'kernel': ['rbf'],
-               'max_iter': cfg.max_iter, 'probability': cfg.probability, 'cache_size': [cache_size,]}
+               'max_iter': cfg.max_iter, 'probability': cfg.probability, 'cache_size': [cache_size, ]}
 
     svc_poly = {'C': cfg.c, 'gamma': cfg.gamma, 'tol': cfg.tol,
                 'kernel': ['poly'], 'degree': cfg.degree, 'coef0': cfg.coef0,
-                'max_iter': cfg.max_iter, 'probability': cfg.probability, 'cache_size': [cache_size,]}
+                'max_iter': cfg.max_iter, 'probability': cfg.probability, 'cache_size': [cache_size, ]}
 
     svc_sigmoid = {'C': cfg.c, 'gamma': cfg.gamma, 'tol': cfg.tol,
                    'kernel': ['sigmoid'], 'coef0': cfg.coef0,
-                   'max_iter': cfg.max_iter, 'probability': cfg.probability, 'cache_size': [cache_size,]}
+                   'max_iter': cfg.max_iter, 'probability': cfg.probability, 'cache_size': [cache_size, ]}
 
     svm_grid = deepcopy(classifier_config_dict)
     svm_grid = remove_classifiers(svm_grid, remove_svms=False, remove_nb=True, remove_trees=True, remove_other=True)
 
-    svm_grid['metstab_pred.src.grid.SVC_rbf'] = svc_rbf
-    svm_grid['metstab_pred.src.grid.SVC_poly'] = svc_poly
-    svm_grid['metstab_pred.src.grid.SVC_sigmoid'] = svc_sigmoid
+    svm_grid['edo.training.grid.SVC_rbf'] = svc_rbf
+    svm_grid['edo.training.grid.SVC_poly'] = svc_poly
+    svm_grid['edo.training.grid.SVC_sigmoid'] = svc_sigmoid
 
     return svm_grid
 
 
 def get_svm_regression_grid():
-    cfg = get_svm_config()
+    """Grid space for regression SVMs"""
+    cfg = get_svm_grid_space()
 
     cache_size = 100
     svr_rbf = {'C': cfg.c, 'gamma': cfg.gamma, 'tol': cfg.tol, 'epsilon': cfg.epsilon,
-               'kernel': ['rbf'], 'max_iter': cfg.max_iter, 'cache_size': [cache_size,]}
+               'kernel': ['rbf'], 'max_iter': cfg.max_iter, 'cache_size': [cache_size, ]}
 
     svr_poly = {'C': cfg.c, 'gamma': cfg.gamma, 'tol': cfg.tol, 'epsilon': cfg.epsilon,
-                'kernel': ['poly'], 'degree': cfg.degree, 'coef0': cfg.coef0, 'max_iter': cfg.max_iter, 'cache_size': [cache_size,]}
+                'kernel': ['poly'], 'degree': cfg.degree, 'coef0': cfg.coef0, 'max_iter': cfg.max_iter,
+                'cache_size': [cache_size, ]}
 
     svr_sigmoid = {'C': cfg.c, 'gamma': cfg.gamma, 'tol': cfg.tol, 'epsilon': cfg.epsilon,
-                   'coef0': cfg.coef0, 'kernel': ['sigmoid'], 'max_iter': cfg.max_iter, 'cache_size': [cache_size,]}
+                   'coef0': cfg.coef0, 'kernel': ['sigmoid'], 'max_iter': cfg.max_iter, 'cache_size': [cache_size, ]}
 
     svm_grid = deepcopy(regressor_config_dict)
     svm_grid = remove_regressors(svm_grid, remove_svms=False, remove_trees=True, remove_other=True)
 
-    svm_grid['metstab_pred.src.grid.SVR_rbf'] = svr_rbf
-    svm_grid['metstab_pred.src.grid.SVR_poly'] = svr_poly
-    svm_grid['metstab_pred.src.grid.SVR_sigmoid'] = svr_sigmoid
+    svm_grid['edo.training.grid.SVR_rbf'] = svr_rbf
+    svm_grid['edo.training.grid.SVR_poly'] = svr_poly
+    svm_grid['edo.training.grid.SVR_sigmoid'] = svr_sigmoid
 
     return svm_grid
 
 
-def get_tree_config():
-    Tree_config = namedtuple('Tree_config',
-                             ['n_estimators', 'max_depth', 'max_samples', 'splitter', 'max_features', 'bootstrap'])
-    cfg = Tree_config(n_estimators=[10, 50, 100, 500, 1000],
-                      max_depth=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, None],
-                      max_samples=[None, 0.5, 0.7, 0.9],
-                      splitter=['best', 'random'],
-                      max_features=np.arange(0.05, 1.01, 0.05),
-                      bootstrap=[True, False])
-
+def get_tree_grid_space():
+    """Grid space for tree-based models"""
+    TreeGridSpace = namedtuple('TreeGridSpace',
+                               ['n_estimators', 'max_depth', 'max_samples', 'splitter', 'max_features', 'bootstrap'])
+    cfg = TreeGridSpace(n_estimators=[10, 50, 100, 500, 1000],
+                        max_depth=[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20, 25, None],
+                        max_samples=[None, 0.5, 0.7, 0.9],
+                        splitter=['best', 'random'],
+                        max_features=np.arange(0.05, 1.01, 0.05),
+                        bootstrap=[True, False])
     return cfg
 
 
 def get_tree_classification_grid():
-    cfg = get_tree_config()
+    """Grid space for classification tree-based models"""
+    cfg = get_tree_grid_space()
 
     etc = 'sklearn.ensemble.ExtraTreesClassifier'
     dtc = 'sklearn.tree.DecisionTreeClassifier'
@@ -229,7 +258,8 @@ def get_tree_classification_grid():
 
 
 def get_tree_regression_grid():
-    cfg = get_tree_config()
+    """Grid space for regression tree-based models"""
+    cfg = get_tree_grid_space()
 
     etr = 'sklearn.ensemble.ExtraTreesRegressor'
     dtr = 'sklearn.tree.DecisionTreeRegressor'
@@ -254,17 +284,17 @@ def get_tree_regression_grid():
     return tree_grid
 
 
-def get_nb_config():
-    NB_config = namedtuple('NB_config', ['alpha', 'fit_prior', 'norm', 'var_smoothing'])
-    cfg = NB_config(alpha=[1e-3, 1e-2, 1e-1, 1., 10., 100.], fit_prior=[True, False], norm=[True, False],
-                    var_smoothing=[1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4])
-
+def get_nb_grid_space():
+    """Grid space for naive Bayes classifiers"""
+    NBGridSpace = namedtuple('NBGridSpace', ['alpha', 'fit_prior', 'norm', 'var_smoothing'])
+    cfg = NBGridSpace(alpha=[1e-3, 1e-2, 1e-1, 1., 10., 100.], fit_prior=[True, False], norm=[True, False],
+                      var_smoothing=[1e-11, 1e-10, 1e-9, 1e-8, 1e-7, 1e-6, 1e-5, 1e-4])
     return cfg
 
 
 def get_nb_classification_grid():
-    # sklearn.naive_bayes.CategoricalNB' crashes so we don't use it
-    cfg = get_nb_config()
+    """Grid space for naive Bayes classifiers"""
+    cfg = get_nb_grid_space()
 
     bayes_grid = deepcopy(classifier_config_dict)
     bayes_grid = remove_classifiers(bayes_grid, remove_nb=True, remove_trees=True, remove_svms=True, remove_other=True)

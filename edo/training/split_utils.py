@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 
-"""A set on functions that allow for working on raw data from Sabina."""
+"""A set of functions for working on raw data from Sabina."""
 
 # CONSTANTS
 DATA_DIR = os.path.abspath(os.path.join("..", "..", "data"))  # must be set for everyone independently
@@ -19,9 +19,9 @@ T12 = "T12"  # human only
 
 def load_data(data_id):
     """
-    Load dataset and set column names for later convenient use.
+    Load dataset and set column names for later use.
     :param data_id: str: dataset id, must include 'human', 'rat' or 'mouse'
-    :return: pd.DataFrame: dataset with normalised columnn names
+    :return: pd.DataFrame: dataset with renamed columns
     """
     if 'human' in data_id.lower():
         return pd.read_csv(os.path.join(DATA_DIR, HUMAN), header=None,
@@ -57,7 +57,7 @@ def clean_data(data):
     hr_filter = cleaned_data[HR].isin(['hr', ])
     cleaned_data = cleaned_data[hr_filter]
 
-    # 4. we only care about SMILES and the stability score, TODO but for now we also leave CHEMBL ID
+    # 4. we only care about SMILES,stability score, and CHEMBL ID
     cleaned_data = cleaned_data[[SMILES, STABILITY_SCORE, CHEMBL_ID]]
 
     return cleaned_data
@@ -76,3 +76,4 @@ def save_split_data(folds, test, saving_directory=DATA_DIR, prefix=''):
 
     for idx, fold in enumerate(folds):
         fold.to_csv(os.path.join(saving_directory, f"{prefix}-fold-{idx+1}.csv"))
+    return
