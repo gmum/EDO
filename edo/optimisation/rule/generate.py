@@ -1,4 +1,3 @@
-import itertools
 import operator
 
 from .. import Goal, get_random_generator
@@ -7,9 +6,9 @@ from ... import Task, TASK_ERROR_MSG
 from ..categorisation import RandomRule
 
 
-def derive_well_separated_two_way_rules(ftr, task):
+def derive_well_separated_rules(ftr, task):
     rules = []
-    info = ftr.well_separated(2)
+    info = ftr.well_separated()
     ftr_params = {'origin': ftr.s_vals_origin,
                   'feature_index': ftr.ftr_index}
 
@@ -25,7 +24,7 @@ def derive_well_separated_two_way_rules(ftr, task):
                     setup = [('add', Goal.MINIMISATION, operator.gt),
                              ('remove', Goal.MAXIMISATION, operator.lt)]
                 else:
-                    msg = f"In two-way well separated result left_reg.majority={left_reg.majority} and right_reg.majority={right_reg.majority}"
+                    msg = f"In well separated result left_reg.majority={left_reg.majority} and right_reg.majority={right_reg.majority}"
                     raise RuntimeError(msg)
 
                 cls_params = {'class_index': cls_idx,
@@ -96,44 +95,6 @@ def derive_high_impact_rules(ftr, params, task):
 # random rules have this
 def always_satisfied(a, b):
     return True
-
-
-def derive_random_rules_all(ftr, task):
-    # dla każdej cechoklasy wszystkie możliwe rule
-    ftr_params = {'origin': ftr.s_vals_origin,
-                  'feature_index': ftr.ftr_index}
-
-    setup_params = []
-    s_iter = itertools.product(['add', 'remove'],
-                               [Goal.MAXIMISATION, Goal.MINIMISATION],
-                               [always_satisfied, ])
-
-    for (action, goal, relation) in s_iter:
-        params = {'action': action, 'goal': goal,
-                  'criterion_relation': relation,
-                  'derivation': (RandomRule(), goal)}
-        setup_params.append(params)
-
-    individual_params = []
-    if task == Task.CLASSIFICATION:
-        for cls_idx in range(len(ftr._classes_order)):
-            # criterion ref_point nie ma znaczenia
-            # bo relation=always_satified
-            params = {'class_index': cls_idx,
-                      'class_name': ftr._classes_order[cls_idx],
-                      'criterion_reference_point': 0}
-            individual_params.append(params)
-
-    elif task == Task.REGRESSION:
-        raise NotImplementedError  # Napisane na sucho, nigdy nie odpalone.
-        params = {'class_index': None, 'class_name': None, 'criterion_reference_point': 0}
-        individual_params.append(params)
-    else:
-        raise ValueError(TASK_ERROR_MSG(task))
-
-    p_iter = itertools.product(individual_params, setup_params)
-    rules = [Rule(**ftr_params, **ind, **stp) for ind, stp in p_iter]
-    return rules
 
 
 def derive_random_rules_sample(ftr, task):

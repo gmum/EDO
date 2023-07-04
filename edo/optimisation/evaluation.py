@@ -9,12 +9,15 @@ from .utils import get_predictions_before_after, _get_pred_single_sample
 
 
 def optimisation_stats(features, rules, samples, samples_for_evaluation, print_func=None):
-    # statistics of optimisation procedure
-    # features - indices of features that were used
-    # rules - rules that were used
-    # samples - samples to optimise
-    # samples_for_evaluation - samples to evaluate
-    # (ex. a subset of `samples` such that only samples which actually undergone some change are present)
+    """
+    Statistics of the optimisation procedure: number of features, samples, etc.
+    :param features: indices of features that were available for optimisation
+    :param rules: Iterable[Rule]: rules that were available for optimisation
+    :param samples: Iterable[Sample]: samples that were available for optimisation
+    :param samples_for_evaluation: Iterable[Sample]: samples that actually changed during optimisation
+    :param print_func: None or function to print with
+    :return: dictionary with statistics
+    """
     n_feats = len(features)
     n_samples = len(samples)
     n_samp_eval = len(samples_for_evaluation)
@@ -34,7 +37,12 @@ def optimisation_stats(features, rules, samples, samples_for_evaluation, print_f
 
 
 def rule_stats(rules, print_func=None):
-    # statistics on rules used for optimisation
+    """
+    Statistics of rules available during optimisation: number of rules in each category, action they perform, etc.
+    :param rules: Iterable[Rule]: rules that were available for optimisation
+    :param print_func: None or function to print with
+    :return: dictionary with statistics
+    """
     n_rules = len(rules)
     ws_rules = len([r for r in rules if isinstance(r.derivation[0], SeparationResult)])
     hi_rules = len([r for r in rules if isinstance(r.derivation[0], HighImpactResult)])
@@ -62,9 +70,13 @@ def rule_stats(rules, print_func=None):
 
 
 def applied_changes_stats(samples, samples_for_evaluation, print_func=None):
-    # statistics on changes applied during optimisation
-    # samples - samples to optimise
-    # samples_for_evaluation - samples to evaluate
+    """
+    Statistics of samples available for optimisation: number of samples, mean number of applied changes, etc.
+    :param samples: Iterable[Sample]: samples that were available for optimisation
+    :param samples_for_evaluation: Iterable[Sample]: samples that actually changed during optimisation
+    :param print_func: None or function to print with
+    :return: dictionary with statistics
+    """
     mean_all = mean_number_of_applied_rules(samples)
     mean_changed = mean_number_of_applied_rules(samples_for_evaluation)
 
@@ -82,9 +94,18 @@ def mean_number_of_applied_rules(samples):
     return np.mean(n_applied_rules)
 
 
-def evaluate_optimisation(samples, model, task, print_func=None):
-    # how effective was optimisation
-    if len(samples)==0:
+def evaluate_stability_optimisation(samples, model, task, print_func=None):
+    """
+    Calculate optimisation metrics for samples using model. This function is specific for optimisation of metabolic
+    stability, i.e. it assumes that probability of low stability class (0) is minimised and probability of high
+    stability class (2) is maximised.
+    :param samples: Iterable[Sample]: samples to evaluate
+    :param model: sklearn-like model to evaluate with
+    :param task: Task: is the model classifier of regressor
+    :param print_func: None or function to print with
+    :return: a dictionary with scores if task is regression or two dictionaries if the task is classification
+    """
+    if len(samples) == 0:
         if task == Task.CLASSIFICATION:
             return {}, {}
         elif task == Task.REGRESSION:
@@ -92,36 +113,45 @@ def evaluate_optimisation(samples, model, task, print_func=None):
         else:
             raise ValueError(TASK_ERROR_MSG(task))
 
-    # TODO: uwaga, zakładamy, że goal to maksymalizacja
     before, after = get_predictions_before_after(samples, model, task)
     if task == Task.CLASSIFICATION:
-        # TODO: zakładamy, że klasę 0 chcemy zminimalizować, a klasę 2 zmaksymalizować
-        # TODO uwaga! ten kawałek zakłada, że classes_order = [0, 1, 2]
+        # NOTE: we assume that classes_order == [0, 1, 2]
+        # minimisation of probability of low stability class
+        should_be_lower = after[:, 0]
+        should_be_higher = before[:, 0]
+        scores_class_unstable = calculate_optimisation_metrics(before, after, should_be_lower, should_be_higher, task,
+                                                               print_func)
 
-        # chcemy, aby prawdopodobieństwo unstable zmalało
-        should_be_lower = after[:, 0]  # klasa unstable po optymalizacji powinna być mniejsza
-        should_be_higher = before[:, 0]  # klasa unstable przed optymalizacją powinna być większa
-        scores_class_unstable = _calculate_stats(before, after, should_be_lower, should_be_higher, task, print_func)
-
-        # ponadto chcemy, aby prawdopodobieństwo klasy stable się zwiększyło
-        should_be_lower = before[:, 2]  # klasa stable przed optymalizacją powinna być mniejsza
-        should_be_higher = after[:, 2]  # klasa stable po optymalizacji powinna być większa
-        scores_class_stable = _calculate_stats(before, after, should_be_lower, should_be_higher, task, print_func)
+        # maximisation of probability of high stability class
+        should_be_lower = before[:, 2]
+        should_be_higher = after[:, 2]
+        scores_class_stable = calculate_optimisation_metrics(before, after, should_be_lower, should_be_higher, task,
+                                                             print_func)
 
         return scores_class_unstable, scores_class_stable
     elif task == Task.REGRESSION:
-        scores = _calculate_stats(before, after, before, after, task, print_func)
+        scores = calculate_optimisation_metrics(before, after, before, after, task, print_func)
         return scores
     else:
         raise ValueError(TASK_ERROR_MSG(task))
 
 
-def _calculate_stats(before, after, should_be_lower, should_be_higher, task, print_func=None):
+def calculate_optimisation_metrics(before, after, should_be_lower, should_be_higher, task, print_func=None):
+    """
+    Calculate success rate, mean change and mean class jump
+    :param before: predictions before optimisation
+    :param after: predictions after optimisation
+    :param should_be_lower: predictions that are supposed to have lower values
+    :param should_be_higher: predictions that are supposed to have higher values
+    :param task: Task: are the predictions calculated by classifier of regressor
+    :param print_func: None or function to print with
+    :return:  dictionary with statistics
+    """
     sr = success_rate(should_be_lower, should_be_higher)
     mc = mean_change(should_be_lower, should_be_higher)
-    scores = {'succes_rate': sr, 'mean_change': mc}
+    scores = {'success_rate': sr, 'mean_change': mc}
     if print_func is not None:
-        print_func(f'succes rate: {sr}')
+        print_func(f'success rate: {sr}')
         print_func(f'mean change: {mc}')
 
     if task == Task.CLASSIFICATION:
@@ -134,27 +164,39 @@ def _calculate_stats(before, after, should_be_lower, should_be_higher, task, pri
 
 
 def success_rate(smaller, bigger):
-    # ile razy zmalało, to co miało zmaleć
-    # TODO: na razie wystarczy, że zmaleje o epsilon, ale możnaby ustawić jakiś threshold
-    assert smaller.shape == bigger.shape, 'Shape mismatch'
+    """
+    How many times values that were supposed to get smaller got smaller divided by the number of samples.
+    :param smaller: values that are supposed to be smaller
+    :param bigger: values that are supposed to be bigger
+    :return: float: success rate
+    """
+    assert smaller.shape == bigger.shape, f'Shape mismatch {smaller.shape} != {bigger.shape}'
     return np.sum(smaller < bigger) / len(smaller)
 
 
 def mean_change(smaller, bigger):
-    # o ile średnio zmalało, to co miało zmaleć
+    """
+    Mean change in the right direction.
+    :param smaller: values that are supposed to be smaller
+    :param bigger: values that are supposed to be bigger
+    :return: float: mean change
+    """
     return np.mean(bigger - smaller)
 
 
 def mean_class_jump(before, after):
-    # średni skok w dobrą stronę
-    # TODO uwaga! ten kawałek zakłada, że classes_order = [0, 1, 2]
-    # TODO: zakładamy, że klasę 0 chcemy zminimalizować, a klasę 2 zmaksymalizować
+    """
+    Mean class increase i.e. prediction was changed to a class with a higher index.
+    :param before: predictions before optimisation
+    :param after: predictions after optimisation
+    :return: float: mean class jump
+    """
+    # NOTE: we assume that classes_order == [0, 1, 2]
     class_before = np.argmax(before, axis=1)
     class_after = np.argmax(after, axis=1)
     return np.mean(class_after - class_before)
 
 
-# TODO: robienie tego per sample i per wpis jest potencjalnie powolne!
 def evaluate_history(samples, model, task):
     # przechodzi przez historię każdego sampla i sprawdza wpływ każdej kolejnej zmiany
     # (podstawowa ewaluacja bierze tylko oryginalny związek i ostateczny)
@@ -172,15 +214,12 @@ def evaluate_history(samples, model, task):
 
             preds_after = _get_pred_single_sample(entry.f_vals, model, task)
 
-            # TODO: poniekąd zakładamy, że goal to maksymalizacja
-            pred_change = preds_after - preds_before  # o ile wzrosło
+            pred_change = preds_after - preds_before
             desc = {'pred_change': pred_change}
             if task == Task.CLASSIFICATION:
-                # TODO uwaga! ten kawałek zakłada, że classes_order = [0, 1, 2]
+                # NOTE: we assume that classes_order == [0, 1, 2]
                 low, med, high = pred_change.flatten()
-                desc = {'pred_change_low': low,
-                        'pred_change_med': med,
-                        'pred_change_high': high}
+                desc = {'pred_change_low': low, 'pred_change_med': med, 'pred_change_high': high}
 
             entry_desc.update(desc)
             results.append(entry_desc)

@@ -10,7 +10,7 @@ from edo.optimisation.utils import get_present_features
 from edo.optimisation.categorisation import SeparationResult, HighImpactResult, RandomRule
 from edo.optimisation import Goal
 from edo.optimisation.utils import load_train_test, load_shap_files, load_predictions, load_model, find_experiment
-from edo.optimisation.rule.generate import derive_well_separated_two_way_rules, derive_high_impact_rules
+from edo.optimisation.rule.generate import derive_well_separated_rules, derive_high_impact_rules
 from edo.optimisation.rule.generate import derive_random_rules_sample
 from edo.optimisation.sample import make_samples
 
@@ -56,7 +56,7 @@ class TestOptimisationUtils(unittest.TestCase):
         self.high_impact_rules = []
         self.random_rules = []
         for ft in self.my_features:
-            self.well_separated_rules.extend(derive_well_separated_two_way_rules(ft, self.task))
+            self.well_separated_rules.extend(derive_well_separated_rules(ft, self.task))
             self.high_impact_rules.extend(derive_high_impact_rules(ft, hi_params, self.task))
             self.random_rules.extend(derive_random_rules_sample(ft, self.task))
 

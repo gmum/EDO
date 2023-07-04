@@ -73,6 +73,7 @@ class Sample(object):
             # print(f"{result}    {rec.rule.name} ({rec.rule.origin}): {rec.rule.action} ({rec.rule.criterion})")
             print(f"{result}    {rec.rule.name}")
         print()  # empty string at the end
+        return
 
     def number_of_applied_changes(self, ):
         return len([rec for rec in self.history if rec.success])

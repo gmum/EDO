@@ -8,7 +8,7 @@ import numpy as np
 from functools import lru_cache
 
 from .sample import Sample
-from ._check import _check_unlogging
+from .._check import _check_unlogging
 from .. import Task, TASK_ERROR_MSG, make_origin
 from ..config import parse_shap_config, UTILS
 from ..utils import find_and_load, get_configs_and_model, usv

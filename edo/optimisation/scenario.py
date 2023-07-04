@@ -3,9 +3,6 @@ from . import get_random_generator
 """Scenarios for optimisation"""
 
 
-# TODO: tests!
-
-
 def optimise(samples, rules, at_once=1, n_times=1, update_shap=None,
              skip_criterion_check=False, extended_history=False):
     # związek ma w sumie zaaplikowanych at_once * n_times reguł
@@ -30,8 +27,6 @@ def optimise(samples, rules, at_once=1, n_times=1, update_shap=None,
                               skip_criterion_check=skip_criterion_check,
                               extended_history=extended_history)
             # OK, so this looks weird but makes sense.
-            # We update sample with `at_once` rules at once
-            # and only then update SHAPs.
-            sample.update(chosen[-1], update_shap=update_shap,
-                          skip_criterion_check=skip_criterion_check,
+            # We update sample with `at_once` rules at once and only then update SHAPs.
+            sample.update(chosen[-1], update_shap=update_shap, skip_criterion_check=skip_criterion_check,
                           extended_history=extended_history)

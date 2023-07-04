@@ -49,7 +49,7 @@ class Feature(object):
         task = deduce_task(task, s_vals)
         validate_task(task, s_vals)
         if task == Task.CLASSIFICATION:
-            assert len(classes_order) == s_vals.shape[0],\
+            assert len(classes_order) == s_vals.shape[0], \
                 f"classes_order length {len(classes_order)} does not match s_vals shape {s_vals.shape}"
         elif task == Task.REGRESSION:
             assert classes_order is None, f"Task is {task} but classes_order is {classes_order}"
@@ -70,7 +70,6 @@ class Feature(object):
         # categorisation cache
         self._well_separated = defaultdict(dict)  # {n_way: {min_purity: [SeparationResult,...]}}
         self._high_impact = defaultdict(dict)  # {metric: {gamma: [HighImpactResult,...]}}
-        self._selectively_important = defaultdict(dict)  # {metric: {miu: [SelectivelyImportantResult,...]}}
         self._unimportant = defaultdict(dict)  # {metric: {miu: [UnimportantResult,...]}}
 
     def __str__(self, ):
@@ -83,7 +82,7 @@ class Feature(object):
         print(
             f"Name: {self.name}, origin: {self.s_vals_origin}, ftr_index: {self.ftr_index}, n_samples: {self._nsamples}, {self._task}, classes_order={self._classes_order}, importance: {np.round(self._importance, 3)}")
 
-        for categ in [self._well_separated, self._high_impact, self._selectively_important, self._unimportant]:
+        for categ in [self._well_separated, self._high_impact, self._unimportant]:
             for k1 in sorted(categ.keys()):
                 print(f"{k1}:")
                 for k2 in categ[k1]:
@@ -92,17 +91,18 @@ class Feature(object):
                         print("\t\t", res)
                     print('\n')
                 print('\n')
+        return
 
-    def well_separated(self, n_groups, min_purity=None):
+    def well_separated(self, ):
         # min purity is important only for three_way_separation
-        params = {} if min_purity is None else {'min_purity': min_purity}
+        n_groups = 2  # bo kiedyś można było trzy
+        min_purity = None  # j.w.
         try:
             return self._well_separated[n_groups][min_purity]
         except KeyError:
             self._well_separated[n_groups][min_purity] = well_separated(self._feature_values, self._shap_values,
-                                                                        self._task, n_groups, params)
-        finally:
-            return self._well_separated[n_groups][min_purity]
+                                                                        self._task)
+        return self._well_separated[n_groups][min_purity]
 
     def high_impact(self, gamma, metric='ratio'):
         try:
@@ -110,8 +110,7 @@ class Feature(object):
         except KeyError:
             self._high_impact[metric][gamma] = high_impact(self._feature_values, self._shap_values, self._task,
                                                            gamma, metric)
-        finally:
-            return self._high_impact[metric][gamma]
+        return self._high_impact[metric][gamma]
 
     def unimportant(self, miu, metric):
         try:
@@ -119,5 +118,4 @@ class Feature(object):
         except KeyError:
             self._unimportant[metric][miu] = unimportant(self._feature_values, self._shap_values, self._task, miu,
                                                          metric)
-        finally:
-            return self._unimportant[metric][miu]
+        return self._unimportant[metric][miu]

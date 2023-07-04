@@ -1,6 +1,6 @@
 import numpy as np
 
-from edo import Task
+from edo import Task, TASK_ERROR_MSG
 
 
 def assert_binary(a):
@@ -44,3 +44,12 @@ def validate_index(i, size=None):
 def validate_task(task, s_vals):
     """Is task correct given SHAP values of a single sample?"""
     assert (task == Task.CLASSIFICATION and len(s_vals.shape) == 2) or (task == Task.REGRESSION and len(s_vals.shape) == 1), f"`s_vals.shape` and task mismatch. `s_vals` must be 1- (regression) or 2-dimensional array (classification), is {s_vals.shape} and task {task}."
+
+
+def _check_unlogging(unlog, task):
+    if task == Task.REGRESSION:
+        assert unlog, f"SHAP values were calculated for a regressor that was not unlogged!"
+    elif task == Task.CLASSIFICATION:
+        assert not unlog, f"SHAP values were calculated for a classifier that was unlogged!"
+    else:
+        raise ValueError(TASK_ERROR_MSG(task))

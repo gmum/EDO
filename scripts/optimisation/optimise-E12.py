@@ -20,14 +20,14 @@ from edo.optimisation.utils import filter_correct_predictions_only, group_sample
 from edo.optimisation.rule.filter import condition_well_separated, condition_high_impact
 
 from edo.optimisation.feature import make_features
-from edo.optimisation.rule.generate import derive_well_separated_two_way_rules, derive_high_impact_rules
+from edo.optimisation.rule.generate import derive_well_separated_rules, derive_high_impact_rules
 from edo.optimisation.rule.generate import derive_random_rules_sample
 from edo.optimisation.rule.filter import filter_rules, filter_out_unimportant
 from edo.optimisation.rule.filter import filter_contradictive_soft, rebel_rules_stats
 from edo.optimisation.sample import make_samples
 from edo.optimisation.scenario import optimise
 
-from edo.optimisation.evaluation import rule_stats, optimisation_stats, evaluate_optimisation, evaluate_history
+from edo.optimisation.evaluation import rule_stats, optimisation_stats, evaluate_stability_optimisation, evaluate_history
 
 
 """
@@ -198,7 +198,7 @@ if __name__ == "__main__":
         all_rules = []
         for ft in my_features:
             if not baseline:
-                r1 = derive_well_separated_two_way_rules(ft, task)
+                r1 = derive_well_separated_rules(ft, task)
                 r2 = derive_high_impact_rules(ft, hi_params, task)
                 all_rules.extend(r1 + r2)
             else:
@@ -275,26 +275,26 @@ if __name__ == "__main__":
                                           print_func=pprint)
 
             # na razie modelem, który liczył shapy
-            shapator_scores_class_unstable, shapator_scores_class_stable = evaluate_optimisation(samples_for_evaluation,
-                                                                                                 shapator, task,
-                                                                                                 print_func=pprint)
+            shapator_scores_class_unstable, shapator_scores_class_stable = evaluate_stability_optimisation(samples_for_evaluation,
+                                                                                                           shapator, task,
+                                                                                                           print_func=pprint)
             shapator_df = evaluate_history(samples_for_evaluation, shapator, task)
             shapator_df.to_csv(osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-shapator.csv'))
 
             # a teraz osobnym modelem
-            independator_scores_class_unstable, independator_scores_class_stable = evaluate_optimisation(
+            independator_scores_class_unstable, independator_scores_class_stable = evaluate_stability_optimisation(
                 samples_for_evaluation, independator, task, print_func=pprint)
             independator_df = evaluate_history(samples_for_evaluation, independator, task)
             independator_df.to_csv(osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-independator.csv'))
 
             # a teraz regresorem
-            regressor_scores = evaluate_optimisation(samples_for_evaluation, regressor, task_reg, print_func=pprint)
+            regressor_scores = evaluate_stability_optimisation(samples_for_evaluation, regressor, task_reg, print_func=pprint)
             regressor_df = evaluate_history(samples_for_evaluation, regressor, task_reg)
             regressor_df.to_csv(osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-regressor-logged.csv'))
 
             # i odlogowanym regressorem
-            reg_unlogged_scores = evaluate_optimisation(samples_for_evaluation, regressor_unlogged, task_reg,
-                                                        print_func=pprint)
+            reg_unlogged_scores = evaluate_stability_optimisation(samples_for_evaluation, regressor_unlogged, task_reg,
+                                                                  print_func=pprint)
             reg_unlogged_df = evaluate_history(samples_for_evaluation, regressor_unlogged, task_reg)
             reg_unlogged_df.to_csv(
                 osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-regressor-unlogged.csv'))

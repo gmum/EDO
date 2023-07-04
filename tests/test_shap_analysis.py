@@ -174,10 +174,10 @@ def test_find_separation_point_well_separated(shap_values, X_full, feature_order
         feat_idx = feature_order.index(f)  # indeks cechy o nazwie "f"
         
         if task == Task.REGRESSION:
-            separation_results = [well_separated(X_full[:,feat_idx], shap_values[:,feat_idx], task, n_way=2), ]
+            separation_results = [well_separated(X_full[:,feat_idx], shap_values[:,feat_idx], task), ]
             classes = [None, ]
         elif task == Task.CLASSIFICATION:
-            separation_results = well_separated(X_full[:,feat_idx], shap_values[:,:,feat_idx], task, n_way=2)
+            separation_results = well_separated(X_full[:,feat_idx], shap_values[:,:,feat_idx], task)
             classes = range(len(separation_results))
         else:
             raise ValueError(f"Unknown task: {task}. Known tasks are `regression` and `classification`.")
@@ -250,6 +250,8 @@ def all_tests(some_model, some_shaps):
         
     # find optimal separation point (well_separated)
     test_find_separation_point_well_separated(to_analyse_shaps, to_analyse_X, feature_order, task)
+    return
+
 
 if __name__=="__main__":
     directory = '/home/pocha/dane_phd/random_split/'

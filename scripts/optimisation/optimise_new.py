@@ -20,12 +20,12 @@ from edo.optimisation.feature import make_features
 from edo.optimisation.rule.filter import condition_well_separated, condition_high_impact
 from edo.optimisation.rule.filter import filter_rules, filter_out_unimportant
 from edo.optimisation.rule.filter import filter_contradictive_soft, rebel_rules_stats
-from edo.optimisation.rule.generate import derive_well_separated_two_way_rules, derive_high_impact_rules
+from edo.optimisation.rule.generate import derive_well_separated_rules, derive_high_impact_rules
 from edo.optimisation.rule.generate import derive_random_rules_sample
 from edo.optimisation.sample import make_samples
 from edo.optimisation.scenario import optimise
 
-from edo.optimisation.evaluation import rule_stats, optimisation_stats, evaluate_optimisation, evaluate_history
+from edo.optimisation.evaluation import rule_stats, optimisation_stats, evaluate_stability_optimisation, evaluate_history
 
 """
 # both correctly and incorrectly predicted samples are optimised
@@ -233,7 +233,7 @@ if __name__ == "__main__":
             all_rules = []
             for ft in my_features:
                 if not baseline:
-                    r1 = derive_well_separated_two_way_rules(ft, task)
+                    r1 = derive_well_separated_rules(ft, task)
                     r2 = derive_high_impact_rules(ft, hi_params, task)
                     all_rules.extend(r1 + r2)
                 else:
@@ -317,7 +317,7 @@ if __name__ == "__main__":
                 for model, model_name, model_task in ((shapator, 'shapator', task), (mic, 'independent', task),
                                                       (mir, 'regressor_logged', task_reg), (mir_unlogged, 'regressor_unlogged', task_reg)):
 
-                    my_scores = evaluate_optimisation(samples_to_evaluate, model, model_task, print_func=pprint)
+                    my_scores = evaluate_stability_optimisation(samples_to_evaluate, model, model_task, print_func=pprint)
                     if task == Task.CLASSIFICATION:
                         scores[f"{model_name}_unstable"] = my_scores[0]
                         scores[f"{model_name}_stable"] = my_scores[1]
@@ -332,7 +332,7 @@ if __name__ == "__main__":
 
 
                 # # na razie modelem, który liczył shapy
-                # shapator_scores_class_unstable, shapator_scores_class_stable = evaluate_optimisation(samples_for_evaluation,
+                # shapator_scores_class_unstable, shapator_scores_class_stable = evaluate_stability_optimisation(samples_for_evaluation,
                 #                                                                                      shapator, task,
                 #                                                                                      print_func=pprint)
                 # shapator_df = evaluate_history(samples_for_evaluation, shapator, task)
@@ -340,20 +340,20 @@ if __name__ == "__main__":
                 #     osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-shapator.csv'))
                 #
                 # # a teraz osobnym modelem
-                # mic_scores_class_unstable, mic_scores_class_stable = evaluate_optimisation(samples_for_evaluation,
+                # mic_scores_class_unstable, mic_scores_class_stable = evaluate_stability_optimisation(samples_for_evaluation,
                 #                                                                            mic, task, print_func=pprint)
                 # mic_df = evaluate_history(samples_for_evaluation, mic, task)
                 # mic_df.to_csv(
                 #     osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-independator.csv'))
                 #
                 # # a teraz regresorem
-                # mir_scores = evaluate_optimisation(samples_for_evaluation, mir, task_reg, print_func=pprint)
+                # mir_scores = evaluate_stability_optimisation(samples_for_evaluation, mir, task_reg, print_func=pprint)
                 # mir_df = evaluate_history(samples_for_evaluation, mir, task_reg)
                 # mir_df.to_csv(
                 #     osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-regressor-logged.csv'))
                 #
                 # # i odlogowanym regressorem
-                # reg_unlogged_scores = evaluate_optimisation(samples_for_evaluation, mir_unlogged, task_reg,
+                # reg_unlogged_scores = evaluate_stability_optimisation(samples_for_evaluation, mir_unlogged, task_reg,
                 #                                             print_func=pprint)
                 # reg_unlogged_df = evaluate_history(samples_for_evaluation, mir_unlogged, task_reg)
                 # reg_unlogged_df.to_csv(

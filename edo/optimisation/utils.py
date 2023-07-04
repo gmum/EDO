@@ -6,7 +6,7 @@ import pandas as pd
 from copy import deepcopy
 
 from .. import make_origin, Task, TASK_ERROR_MSG
-from ._check import _check_unlogging
+from .._check import _check_unlogging
 from ..utils import find_and_load, get_all_subfolders, get_all_files, usv
 from ..config import parse_shap_config, UTILS
 
@@ -118,7 +118,6 @@ def _get_pred_single_sample(f_vals, model, task):
 
 
 def get_predictions_before_after_slow(samples, model, task):
-    # TODO robienie tego per sample jest potencjalnie strasznie powolne
     before, after = [], []
     for sample in samples:
         before.append(_get_pred_single_sample(sample.original_f_vals, model, task))
