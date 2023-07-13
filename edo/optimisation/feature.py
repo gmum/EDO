@@ -14,8 +14,9 @@ def make_features(feature_indices, sample_indices, feature_values, shap_values, 
     :param sample_indices: List: indices of samples to use
     :param feature_values: numpy.array [samples x features]: matrix of feature values
     :param shap_values: numpy.array [(classes x) samples x features]: matrix of SHAP values
-    :param classes_order: numpy.array: classes order from model used to calculated SHAP values
-    :param origin: Origin: description of model used to calculate SHAP values
+    :param classes_order: numpy.array: classes order from the model used to calculate SHAP values or None in the case of
+                                       regressors
+    :param origin: Origin: description of the model used to calculate SHAP values
     :param task: Task: is the model used to calculate SHAP values a classifier or a regressor
     :return: List[Feature]: list of Feature objects
     """
@@ -74,8 +75,8 @@ class Feature(object):
 
         # CACHED PROPERTIES
         self._well_separated = defaultdict(dict)  # {n_groups: {min_purity: [SeparationResult,...]}}
-        self._high_impact = defaultdict(dict)  # {metric: {gamma: [HighImpactResult,...]}}
-        self._unimportant = defaultdict(dict)  # {metric: {niu: [UnimportantResult,...]}}
+        self._high_impact = defaultdict(dict)     # {metric: {gamma: [HighImpactResult,...]}}
+        self._unimportant = defaultdict(dict)     # {metric: {niu: [UnimportantResult,...]}}
 
     def __str__(self):
         return f"Name: {self.name}, n_samples: {self._nsamples}, {self._task}"

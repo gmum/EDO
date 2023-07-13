@@ -18,13 +18,18 @@ from .shapcalculator import SHAPCalculator
 # # # # # # # # # # # #
 
 
-# ISSUE 131 TODO
-def find_experiment(results, stage, origin):
-    # What's the path for the experiments I'm looking for?
+def find_experiment(results_dir, stage, origin):
+    """
+    Determine path to the experiment of interest.
+    :param results_dir: str: path to root directory with results
+    :param stage: str: `ml` or `shap` - looking for results of model training or explaining the predictions?
+    :param origin: Origin: identification of the experiment
+    :return: str: path
+    """
     origin = make_origin(origin)
     stage = stage.lower()
 
-    path = osp.join(results, origin.split, stage)
+    path = osp.join(results_dir, origin.split, stage)
     exp_dir = f'{origin.dataset}-{origin.representation}-{origin.task}-{origin.model}'
 
     candidates = [c for c in get_all_subfolders(path, extend=False) if exp_dir in c]
@@ -32,23 +37,33 @@ def find_experiment(results, stage, origin):
     return exp_path
 
 
-def load_train_test(mldir):
-    # returns (x, y, smiles) for train and test
-    x_train = find_and_load(mldir, '-x.pickle', protocol='pickle')
-    x_test = find_and_load(mldir, '-test_x.pickle', protocol='pickle')
+def load_train_test(ml_dir):
+    """
+    Load train and test data from ml_dir.
+    :param ml_dir: str: path to directory with experiment results
+    :return: List[Tuple[np.array[samples x features], np.array[samples], np.array[samples]]]:
+             (x, y, smiles) for train and test
+    """
+    x_train = find_and_load(ml_dir, '-x.pickle', protocol='pickle')
+    x_test = find_and_load(ml_dir, '-test_x.pickle', protocol='pickle')
 
-    y_train = find_and_load(mldir, '-y.pickle', protocol='pickle')
-    y_test = find_and_load(mldir, '-test_y.pickle', protocol='pickle')
+    y_train = find_and_load(ml_dir, '-y.pickle', protocol='pickle')
+    y_test = find_and_load(ml_dir, '-test_y.pickle', protocol='pickle')
 
-    smiles_train = find_and_load(mldir, '-smiles.pickle', protocol='pickle')
-    smiles_test = find_and_load(mldir, '-test_smiles.pickle', protocol='pickle')
+    smiles_train = find_and_load(ml_dir, '-smiles.pickle', protocol='pickle')
+    smiles_test = find_and_load(ml_dir, '-test_smiles.pickle', protocol='pickle')
 
     return (x_train, y_train, smiles_train), (x_test, y_test, smiles_test),
 
 
-def load_predictions(mldir, task):
-    # zero, one, two w preds to indeksy klas a nie ich tożsamość (unstable, medium, stable)
-    # ( w tym miejscu nie jesteśmy w stanie sprawdzić w jakiej kolejności model zwracał klasy)
+def load_predictions(ml_dir, task):
+    """
+    Load train and test predictions from ml_dir.
+    :param ml_dir: str: path to directory with experiment results
+    :param task: Task: are these results for classification or regression?
+    :return: (pandas.DataFrame, pandas.DataFrame): train data, test data
+    """
+
     def _load_and_parse(files):
         preds = pd.concat([pd.read_csv(f, sep='\t') for f in files])
         preds = preds.drop_duplicates()
@@ -58,30 +73,39 @@ def load_predictions(mldir, task):
             mlcp = preds.class_probabilities.str.extract(
                 r'(?P<zero>[e0-9.+-]*)\s+(?P<one>[e0-9.+-]*)\s+(?P<two>[e0-9.+-]*)')
             preds = preds.join(mlcp)
+            # Note `zero`, `one`, and `two`are class indices and not their categories (unstable, medium, stable)
             preds = preds.astype({'zero': float, 'one': float, 'two': float})
         return preds
 
-    all_preds = [f for f in get_all_files(mldir, extend=False) if 'predictions' in f]
-    train_df = _load_and_parse(osp.join(mldir, f) for f in all_preds if 'train' in f)
-    test_df = _load_and_parse(osp.join(mldir, f) for f in all_preds if 'test' in f)
+    all_preds = [f for f in get_all_files(ml_dir, extend=False) if 'predictions' in f]
+    train_df = _load_and_parse(osp.join(ml_dir, f) for f in all_preds if 'train' in f)
+    test_df = _load_and_parse(osp.join(ml_dir, f) for f in all_preds if 'test' in f)
     return train_df, test_df
 
 
-# ISSUE 131 TODO
-def load_shap_files(shapdir, task, check_unlogging):
-    # smaller version of src.shap_analysis.utils load_shap_files with more checks
-    shap_cfg = parse_shap_config(usv([osp.join(shapdir, f) for f in os.listdir(shapdir) if 'shap' in f and 'cfg' in f]))
+def load_shap_files(shap_dir, task, check_unlogging):
+    """
+    Load data and SHAP values from shap_dir.
+    :param shap_dir: path to directory with experiment results
+    :param task: Task: is the model used to calculate SHAP values a classifier or a regressor
+    :param check_unlogging: boolean: if True will ensure that regressors are unlogged and classifiers are not
+    :return: (np.array[samples], np.array[samples x features], np.array[samples], np.array[classes],
+             np.array[(classes x) samples x features]): SMILES, concatenated train and test data, true labels,
+             classes order from the model used to calculate SHAP values or None in the case of regressors, SHAP values
+    """
+    shap_cfg = parse_shap_config(
+        usv([osp.join(shap_dir, f) for f in get_all_files(shap_dir, extend=False) if 'shap' in f and 'cfg' in f]))
     unlog = shap_cfg[UTILS]["unlog"]
     if check_unlogging:
         _check_unlogging(unlog, task)
 
-    smiles_order = find_and_load(shapdir, 'smiles.npy', protocol='numpy')  # changed from canonised.npy
-    X_full = find_and_load(shapdir, 'X_full.npy', protocol='numpy')
-    true_ys = find_and_load(shapdir, 'true_ys.npy', protocol='numpy')
-    shap_values = find_and_load(shapdir, 'SHAP_values.npy', protocol='numpy')
+    smiles_order = find_and_load(shap_dir, 'smiles.npy', protocol='numpy')
+    X_full = find_and_load(shap_dir, 'X_full.npy', protocol='numpy')
+    true_ys = find_and_load(shap_dir, 'true_ys.npy', protocol='numpy')
+    shap_values = find_and_load(shap_dir, 'SHAP_values.npy', protocol='numpy')
 
     if task == Task.CLASSIFICATION:
-        classes_order = find_and_load(shapdir, 'classes_order.npy', protocol='numpy')
+        classes_order = find_and_load(shap_dir, 'classes_order.npy', protocol='numpy')
     elif task == Task.REGRESSION:
         classes_order = None
     else:
@@ -91,13 +115,21 @@ def load_shap_files(shapdir, task, check_unlogging):
 
 
 def load_model(results_dir, origin, check_unlogging=True):
-    mldir = find_experiment(results_dir, 'ml', origin)
-    shapdir = find_experiment(results_dir, 'shap', origin)
+    """
+    Load a model and return it unchanged (for evaluation of the optimisation procedure) and as a SHAPCalculator
+    :param results_dir: str: path to root directory with results
+    :param origin: Origin: identification of the experiment
+    :param check_unlogging: boolean: if True will ensure that regressors are unlogged and classifiers are not
+    :return: (sklearn model, SHAPCalculator): model for evaluation of the optimisation procedure,
+                                              model for calculation of SHAP values
+    """
+    ml_dir = find_experiment(results_dir, 'ml', origin)
+    shap_dir = find_experiment(results_dir, 'shap', origin)
 
-    # load model
-    model_fname = usv([pkl for pkl in os.listdir(mldir) if 'model.pickle' in pkl])
-    evaluation_model = find_and_load(mldir, model_fname, protocol='pickle')  # evaluate optimisation procedure
-    shap_model = SHAPCalculator(shapdir, mldir, origin, check_unlogging)     # calculate SHAP values
+    # load model for...
+    model_fname = usv([pkl for pkl in get_all_files(ml_dir, extend=False) if 'model.pickle' in pkl])
+    evaluation_model = find_and_load(ml_dir, model_fname, protocol='pickle')  # ... evaluation of optimisation procedure
+    shap_model = SHAPCalculator(shap_dir, ml_dir, origin, check_unlogging)    # ... calculation of SHAP values
 
     return evaluation_model, shap_model
 
@@ -136,7 +168,7 @@ def _get_pred(f_vals, model, task):
 
 
 def get_predictions_before_after(samples, model, task):
-    if len(samples)<=1:
+    if len(samples) <= 1:
         return get_predictions_before_after_slow(samples, model, task)
 
     # optimised get_predictions_before_after_slow
@@ -203,8 +235,8 @@ def get_present_features(x_train, threshold):
     assert summed.shape[0] == x_train.shape[1]
 
     # threshold must be met from both ends
-    sufficient = summed/n_samples >= threshold  # sufficient is array of bools
-    not_too_many = summed/n_samples <= (1 - threshold)
+    sufficient = summed / n_samples >= threshold  # sufficient is array of bools
+    not_too_many = summed / n_samples <= (1 - threshold)
     satisfied = np.logical_and(sufficient, not_too_many)
 
     # todo: może dopisać też po nazwach?

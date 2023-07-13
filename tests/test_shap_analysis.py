@@ -174,10 +174,10 @@ def test_find_separation_point_well_separated(shap_values, X_full, feature_order
         feat_idx = feature_order.index(f)  # indeks cechy o nazwie "f"
         
         if task == Task.REGRESSION:
-            separation_results = [well_separated(X_full[:,feat_idx], shap_values[:,feat_idx], task), ]
+            separation_results = [well_separated(X_full[:,feat_idx], shap_values[:,feat_idx], task, 2, None), ]
             classes = [None, ]
         elif task == Task.CLASSIFICATION:
-            separation_results = well_separated(X_full[:,feat_idx], shap_values[:,:,feat_idx], task)
+            separation_results = well_separated(X_full[:,feat_idx], shap_values[:,:,feat_idx], task, 2, None)
             classes = range(len(separation_results))
         else:
             raise ValueError(f"Unknown task: {task}. Known tasks are `regression` and `classification`.")
