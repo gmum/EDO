@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 import pandas as pd
 
-from edo import make_origin, Task, TASK_ERROR_MSG
+from edo import make_origin, Task, TASK_ERROR_MSG, no_print
 from edo.utils import index_of_smiles
 from edo.savingutils import make_directory, save_as_json, get_timestamp
 from edo.wrappers import LoggerWrapper
@@ -25,7 +25,7 @@ from edo.optimisation.rule.generate import derive_random_rules_sample
 from edo.optimisation.sample import make_samples
 from edo.optimisation.scenario import optimise
 
-from edo.optimisation.evaluation import rule_stats, optimisation_stats, evaluate_stability_optimisation, evaluate_history
+from edo.optimisation.evaluation import rule_stats, optimisation_stats, evaluate_stability_optimisation, get_history
 
 """
 # both correctly and incorrectly predicted samples are optimised
@@ -139,7 +139,7 @@ if __name__ == "__main__":
     logger_wrapper.logger.info(timestamp)
     logger_wrapper.logger.info(f'Running {sys.argv}')
     logger_wrapper.logger.info(f'with params: {vars(args)}')
-    pprint = logger_wrapper.logger.info if pprint else None
+    pprint = logger_wrapper.logger.info if pprint else no_print
 
     # # # # # # # #
     # S K R Y P T #
@@ -156,7 +156,7 @@ if __name__ == "__main__":
     tr_preds, test_preds = load_predictions(ml_m1, task)
 
     if correct_only:
-        train_correct_smi = filter_correct_predictions_only(tr_preds, task)
+        train_smi = filter_correct_predictions_only(tr_preds, task)
     else:
         train_smi = sorted(tr_preds.index.tolist())  # use all samples to derive rules
     test_correct_smi = filter_correct_predictions_only(test_preds, task)
@@ -216,14 +216,13 @@ if __name__ == "__main__":
     ####
     for tr, group_te, name_te in zip(groups_train, groups_test_samples, group_test_names):
         for group_tr, name_tr in tr:
-
             logger_wrapper.logger.info(f"{name_te} samples will be optimised with rules derived on {name_tr}")
     ####
 
             # # # # # # # # # # # # # # # # #
             # C R E A T E   F E A T U R E S #
             # # # # # # # # # # # # # # # # #
-            tr_smis = intersection_list(train_correct_smi, group_tr)  # wybieramy smilesy
+            tr_smis = intersection_list(train_smi, group_tr)  # wybieramy smilesy
             tr_smis = index_of_smiles(shap_smis, tr_smis)  # bierzemy ich indeksy
             my_features = make_features(present_features, tr_smis, shap_x, shap_vals, classes_order, m1_origin, task)
 
@@ -239,7 +238,7 @@ if __name__ == "__main__":
                 else:
                     all_rules.extend(derive_random_rules_sample(ft, task))
 
-            logger_wrapper.logger.info('All')
+            pprint('All')
             rules_all = rule_stats(all_rules, print_func=pprint)
 
             # # # # # # # # # # # # # #
@@ -250,7 +249,7 @@ if __name__ == "__main__":
             max_stab_rules = filter_rules(all_rules, Goal.MAXIMISATION, cls_name=2)  # maximise stable class probability
             min_unstab_rules = filter_rules(all_rules, Goal.MINIMISATION, cls_name=0)
             my_rules = max_stab_rules + min_unstab_rules
-            logger_wrapper.logger.info('After filtering based on class and goal')
+            pprint('After filtering based on class and goal')
             rules_class_goaled = rule_stats(my_rules, print_func=pprint)
 
             # filtering based on conditions
@@ -258,22 +257,22 @@ if __name__ == "__main__":
             if not baseline:
                 my_rules = filter_rules(my_rules, condition=condition_ws)
                 my_rules = filter_rules(my_rules, condition=condition_hi)
-                logger_wrapper.logger.info('After filtering based on conditions')
+                pprint('After filtering based on conditions')
                 rules_conditioned = rule_stats(my_rules, print_func=pprint)
 
             # filtering out unimportant
             my_rules = filter_out_unimportant(my_rules, my_features, unimp_params, unimp_max_ratio, task=task)
-            logger_wrapper.logger.info('After filtering out unimportant rules')
+            pprint('After filtering out unimportant rules')
             rules_importante = rule_stats(my_rules, print_func=pprint)
 
             # filtering out contradictive rules (SOFT VERSION)
             rules_noncontradictive = {}
             if no_contradictive:
                 rebel_rules_stats(my_rules, print_func=pprint)
-                logger_wrapper.logger.info(' ')
+                pprint(' ')
                 my_rules = filter_contradictive_soft(my_rules)
                 rebel_rules_stats(my_rules, print_func=pprint)
-                logger_wrapper.logger.info('After filtering out contradictive rules')
+                pprint('After filtering out contradictive rules')
                 rules_noncontradictive = rule_stats(my_rules, print_func=pprint)
 
             rule_history = {'rules_all': rules_all,
@@ -326,7 +325,7 @@ if __name__ == "__main__":
                     else:
                         raise ValueError(TASK_ERROR_MSG(task))
 
-                    df = evaluate_history(samples_to_evaluate, model, model_task)
+                    df = get_history(samples_to_evaluate, model, model_task)
                     df.to_csv(
                         osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-{model_name}.csv'))
 
@@ -335,27 +334,27 @@ if __name__ == "__main__":
                 # shapator_scores_class_unstable, shapator_scores_class_stable = evaluate_stability_optimisation(samples_for_evaluation,
                 #                                                                                      shapator, task,
                 #                                                                                      print_func=pprint)
-                # shapator_df = evaluate_history(samples_for_evaluation, shapator, task)
+                # shapator_df = get_history(samples_for_evaluation, shapator, task)
                 # shapator_df.to_csv(
                 #     osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-shapator.csv'))
                 #
                 # # a teraz osobnym modelem
                 # mic_scores_class_unstable, mic_scores_class_stable = evaluate_stability_optimisation(samples_for_evaluation,
                 #                                                                            mic, task, print_func=pprint)
-                # mic_df = evaluate_history(samples_for_evaluation, mic, task)
+                # mic_df = get_history(samples_for_evaluation, mic, task)
                 # mic_df.to_csv(
                 #     osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-independator.csv'))
                 #
                 # # a teraz regresorem
                 # mir_scores = evaluate_stability_optimisation(samples_for_evaluation, mir, task_reg, print_func=pprint)
-                # mir_df = evaluate_history(samples_for_evaluation, mir, task_reg)
+                # mir_df = get_history(samples_for_evaluation, mir, task_reg)
                 # mir_df.to_csv(
                 #     osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-regressor-logged.csv'))
                 #
                 # # i odlogowanym regressorem
                 # reg_unlogged_scores = evaluate_stability_optimisation(samples_for_evaluation, mir_unlogged, task_reg,
                 #                                             print_func=pprint)
-                # reg_unlogged_df = evaluate_history(samples_for_evaluation, mir_unlogged, task_reg)
+                # reg_unlogged_df = get_history(samples_for_evaluation, mir_unlogged, task_reg)
                 # reg_unlogged_df.to_csv(
                 #     osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-regressor-unlogged.csv'))
 

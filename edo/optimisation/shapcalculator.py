@@ -67,10 +67,10 @@ class SHAPCalculator(object):
 
         self.task = task
 
-    def __str__(self, ):
+    def __str__(self):
         return f"{self.origin}, link={self.link}, unlog={self.unlog}"
 
-    def __repr__(self, ):
+    def __repr__(self):
         return f"SHAPCalculator(**{repr(self._repr_params)})"
 
     def shap_values(self, x):

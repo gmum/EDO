@@ -9,8 +9,7 @@ from ..categorisation import RandomRule
 def derive_well_separated_rules(ftr, task):
     rules = []
     info = ftr.well_separated()
-    ftr_params = {'origin': ftr.s_vals_origin,
-                  'feature_index': ftr.ftr_index}
+    ftr_params = {'origin': ftr.s_vals_origin, 'feature_index': ftr.ftr_index}
 
     if task == Task.CLASSIFICATION:
         for cls_idx, cls_equivalent_solutions in enumerate(info):
@@ -100,9 +99,8 @@ def always_satisfied(a, b):
 def derive_random_rules_sample(ftr, task):
     # jedna cechoklasa -> jedna rula
 
-    rng = get_random_generator()
-    ftr_params = {'origin': ftr.s_vals_origin,
-                  'feature_index': ftr.ftr_index}
+    rng = get_random_generator()  # ensure reproducibility
+    ftr_params = {'origin': ftr.s_vals_origin, 'feature_index': ftr.ftr_index}
 
     actions = ['add', 'remove']
     goals = [Goal.MAXIMISATION, Goal.MINIMISATION]

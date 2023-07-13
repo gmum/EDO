@@ -27,7 +27,7 @@ from edo.optimisation.rule.filter import filter_contradictive_soft, rebel_rules_
 from edo.optimisation.sample import make_samples
 from edo.optimisation.scenario import optimise
 
-from edo.optimisation.evaluation import rule_stats, optimisation_stats, evaluate_stability_optimisation, evaluate_history
+from edo.optimisation.evaluation import rule_stats, optimisation_stats, evaluate_stability_optimisation, get_history
 
 """
 Derive rules based on ALL samples and not only the correctly predicted ones.
@@ -259,24 +259,24 @@ if __name__ == "__main__":
         shapator_scores_class_unstable, shapator_scores_class_stable = evaluate_stability_optimisation(samples_for_evaluation,
                                                                                                        shapator, task,
                                                                                                        print_func=pprint)
-        shapator_df = evaluate_history(samples_for_evaluation, shapator, task)
+        shapator_df = get_history(samples_for_evaluation, shapator, task)
         shapator_df.to_csv(osp.join(saving_dir, f'{timestamp}-history-{group_name}-shapator.csv'))
 
         # a teraz osobnym modelem
         independator_scores_class_unstable, independator_scores_class_stable = evaluate_stability_optimisation(
             samples_for_evaluation, independator, task, print_func=pprint)
-        independator_df = evaluate_history(samples_for_evaluation, independator, task)
+        independator_df = get_history(samples_for_evaluation, independator, task)
         independator_df.to_csv(osp.join(saving_dir, f'{timestamp}-history-{group_name}-independator.csv'))
 
         # a teraz regresorem
         regressor_scores = evaluate_stability_optimisation(samples_for_evaluation, regressor, task_reg, print_func=pprint)
-        regressor_df = evaluate_history(samples_for_evaluation, regressor, task_reg)
+        regressor_df = get_history(samples_for_evaluation, regressor, task_reg)
         regressor_df.to_csv(osp.join(saving_dir, f'{timestamp}-history-{group_name}-regressor-logged.csv'))
 
         # i odlogowanym regressorem
         reg_unlogged_scores = evaluate_stability_optimisation(samples_for_evaluation, regressor_unlogged, task_reg,
                                                               print_func=pprint)
-        reg_unlogged_df = evaluate_history(samples_for_evaluation, regressor_unlogged, task_reg)
+        reg_unlogged_df = get_history(samples_for_evaluation, regressor_unlogged, task_reg)
         reg_unlogged_df.to_csv(osp.join(saving_dir, f'{timestamp}-history-{group_name}-regressor-unlogged.csv'))
 
         group_results = {'n_train_samples': len(tr_smis),

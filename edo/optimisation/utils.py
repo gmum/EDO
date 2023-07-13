@@ -139,7 +139,7 @@ def get_predictions_before_after(samples, model, task):
     if len(samples)<=1:
         return get_predictions_before_after_slow(samples, model, task)
 
-    # zoptymalizowane get_predictions_before_after_slow
+    # optimised get_predictions_before_after_slow
     before = np.array([sample.original_f_vals for sample in samples])
     after = np.array([sample.f_vals for sample in samples])
 
@@ -195,8 +195,7 @@ def difference_list(*argv):
 
 def get_present_features(x_train, threshold):
     """
-    this returns indices of features that are present and absent
-    in at least (treshold * n_samples) molecules in the training set
+    Return indices of features that are present and absent in at least (threshold * n_samples) samples in the training set
     """
 
     n_samples = x_train.shape[0]

@@ -70,18 +70,18 @@ class Rule(object):
         # derivation -> justification?
         self.derivation = derivation  # ex. Well separated (regions: ...; majorities: ..)
 
-    def apply(self, sample, skip_criterion_check=False, update_shap=None, extended_history=False):
+    def apply(self, sample, skip_criterion_check=False, shap_calculator=None, extended_history=False):
         # call optimise
-        optimise(sample, self, skip_criterion_check, update_shap, extended_history)
+        optimise(sample, self, skip_criterion_check, shap_calculator, extended_history)
 
     def can_be_applied(self, sample, skip_criterion_check=False):
         return self.action.is_possible(sample) and (skip_criterion_check or self.criterion.is_satisfied(sample))
 
-    def __str__(self, ):
+    def __str__(self):
         return f"If {self.criterion} then {self.action} ({self.goal})."
 
-    def __repr__(self, ):
-        return f"Rule(origin={repr(self.origin)}, feature_index={repr(self.ftr_idx)}, class_index={repr(self.cls_idx)}, class_name={repr(self.cls_name)}, action={repr(self.action)}, goal={repr(self.goal)}, criterion_relation={repr(self.criterion.relation)}, criterion_reference_point={repr(self.criterion.relation.ref_val)}, name={repr(self.name)}, derivation={repr(self.derivation)})"
+    def __repr__(self):
+        return f"Rule({repr(self.origin)}, {repr(self.ftr_idx)}, {repr(self.cls_idx)}, {repr(self.cls_name)}, {repr(self.action)}, {repr(self.goal)}, {repr(self.criterion.relation)}, {repr(self.criterion.relation.ref_val)}, name={repr(self.name)}, derivation={repr(self.derivation)})"
 
     def as_dict(self, compact=False):
         d = deepcopy(self.__dict__)
@@ -166,11 +166,11 @@ class Criterion(object):
             s_vals = sample.s_vals[self.cls_idx, self.ftr_idx]
         return self.relation(s_vals)
 
-    def __str__(self, ):
+    def __str__(self):
         cls_idx = f"[{self.cls_idx}]" if self.cls_idx is not None else ''
         return self.relation.__str__(f"shap_val{cls_idx}[{self.ftr_idx}]")
 
-    def __repr__(self, ):
+    def __repr__(self):
         return f"Criterion({repr(self.origin)}, {repr(self.relation.relation)}, {repr(self.relation.ref_val)}, {repr(self.ftr_idx)}, {repr(self.cls_idx)})"
 
 
@@ -211,10 +211,10 @@ class Action(object):
         # can add substructure only if it is not there yet...
         return sample.f_vals[self.index] != self.new_value
 
-    def __str__(self, ):
+    def __str__(self):
         return f"f_val[{self.index}] -> {self.new_value}"
 
-    def __repr__(self, ):
+    def __repr__(self):
         return f"Action({repr(self.desc)}, {repr(self.index)})"
 
     def equals(self, other):

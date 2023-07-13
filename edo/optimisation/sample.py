@@ -1,6 +1,7 @@
+import numpy as np
 from copy import deepcopy
 
-from . import optimise
+from . import optimise, ExtendedHistoryRecord
 from .._check import validate_shapes
 from .. import make_origin, Task, TASK_ERROR_MSG
 
@@ -36,9 +37,10 @@ class Sample(object):
     shap_values: np.array (1 or 2 dimensions)
         SHAP values, used to check if Sample is eligible for optimisation
     shap_values_origin: Origin
-        inf. about the model for which `shap_values` are calculated
+        information about the model that calculated `shap_values`
+    classes_order: TODO uzupełnić
     smiles: str or None
-        note: this assumes that Sample is in fact Molecule, it would be better to
+        TODO: this assumes that Sample is in fact a molecule, it would be better to
               remove smiles from Sample and make a class Molecule(Sample) that only adds smiles
     """
 
@@ -54,20 +56,20 @@ class Sample(object):
         self.smiles = smiles
         self.history = []
 
-    def __str__(self, ):
+    def __str__(self):
         return f"{self.smiles} ({self.s_vals_origin})"
 
-    def __repr__(self, ):
+    def __repr__(self):
         return f"Sample({repr(self.original_f_vals)}, {repr(self.original_s_vals)}, {repr(self.s_vals_origin)}, {repr(self.classes_order)}, {repr(self.smiles)})"
 
-    def update(self, rule, skip_criterion_check=False, update_shap=None, extended_history=False):
+    def update(self, rule, skip_criterion_check=False, shap_calculator=None, extended_history=False):
         """
         Call optimise and return self to allow chaining (sample.update(rule1).update(rule2) )
         """
-        optimise(self, rule, skip_criterion_check, update_shap, extended_history)
+        optimise(self, rule, skip_criterion_check, shap_calculator, extended_history)
         return self
 
-    def print_history(self, ):
+    def print_history(self):
         for rec in self.history:
             result = 'applied' if rec.success else 'skipped'
             # print(f"{result}    {rec.rule.name} ({rec.rule.origin}): {rec.rule.action} ({rec.rule.criterion})")
@@ -75,5 +77,16 @@ class Sample(object):
         print()  # empty string at the end
         return
 
-    def number_of_applied_changes(self, ):
+    def number_of_applied_changes(self):
         return len([rec for rec in self.history if rec.success])
+
+    def get_s_vals(self, new_f_vals):
+        # if SHAP values for these feature values are already calculated then they are returned, otherwise None
+        for entry in reversed(self.history):
+            if not isinstance(entry, ExtendedHistoryRecord) or np.any(entry.f_vals != new_f_vals):
+                continue
+            else:
+                return entry.s_vals  # TODO: na wszelki wypadek upewnić się, że to jest przekazywane przez referencję albo dać deepcopy
+        if np.all(self.original_f_vals == new_f_vals):
+            return self.original_s_vals  # TODO: j.w.
+        return None

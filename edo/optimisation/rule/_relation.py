@@ -19,7 +19,7 @@ class Relation(object):
         # TODO: ...
         return f"{'x' if x is None else x} {self.relation.__qualname__} {self.ref_val}"
 
-    def __repr__(self, ):
+    def __repr__(self):
         return f"Relation({repr(self.relation)}, {repr(self.ref_val)})"
 
     def __call__(self, x):

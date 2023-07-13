@@ -1,6 +1,8 @@
 from enum import Enum
 from collections import namedtuple
 
+no_print = lambda x: None  # print nothing
+
 
 class Task(Enum):
     CLASSIFICATION = 'classification'
@@ -33,6 +35,8 @@ def deduce_task(task, s_vals=None):
         raise TypeError(f"`task` must be string, Task or None, is {type(task)}.")
     return task
 
+
+# TODO: może origin przenieść do optimisation.__init__? Czy też przyda nam się w training? (Na razie jest nieużywane)
 
 # Origin identifies a ML model and can be used to load all data for this model (edo.optimisation.utils.find_experiment)
 # ex. Origin('human', 'random', 'KRFP', 'classification', 'SVM') is
