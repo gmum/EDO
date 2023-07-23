@@ -43,7 +43,7 @@ class Feature(object):
         Features are used to derive Rules.
         :param f_vals: numpy.array [samples]: matrix of feature values
         :param s_vals: numpy.array [(classes x) samples]: matrix of SHAP values
-        :param origin: Origin: description of model used to calculate SHAP values
+        :param origin: Origin: description of the model used to calculate SHAP values
         :param ftr_index: index of this feature
         :param classes_order: numpy.array: classes order from model used to calculate SHAP values or None if the model
                                            is a regressor; default: None
@@ -82,12 +82,12 @@ class Feature(object):
         return f"Name: {self.name}, n_samples: {self._nsamples}, {self._task}"
 
     def __repr__(self):
-        return f"Feature({repr(self._feature_values)}, {repr(self._shap_values)}, {repr(self.s_vals_origin)}, {repr(self.ftr_index)}, classes_order={repr(self._classes_order)}, task={self._task}, name={self.name})"
+        return f"Feature({repr(self._feature_values)}, {repr(self._shap_values)}, {repr(self.origin)}, {repr(self.ftr_index)}, classes_order={repr(self._classes_order)}, task={self._task}, name={self.name})"
 
     def info(self):
         """Human-readable detailed information about the object."""
         print(
-            f"Name: {self.name}, origin: {self.s_vals_origin}, ftr_index: {self.ftr_index}, n_samples: {self._nsamples}, {self._task}, classes_order={self._classes_order}")
+            f"Name: {self.name}, origin: {self.origin}, ftr_index: {self.ftr_index}, n_samples: {self._nsamples}, {self._task}, classes_order={self._classes_order}")
 
         for category in [self._well_separated, self._high_impact, self._unimportant]:
             for k1 in sorted(category.keys()):

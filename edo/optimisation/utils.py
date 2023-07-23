@@ -1,4 +1,3 @@
-import os
 import os.path as osp
 import numpy as np
 import pandas as pd
@@ -12,9 +11,15 @@ from ..config import parse_shap_config, UTILS
 
 from .shapcalculator import SHAPCalculator
 
+"""
+- utils to load data
+- utils for preprocessing
+- utils to make predictions
+"""
+
 
 # # # # # # # # # # # #
-# L O A D   S T U F F #
+# L O A D   U T I L S #
 # # # # # # # # # # # #
 
 
@@ -119,7 +124,8 @@ def load_model(results_dir, origin, check_unlogging=True):
     Load a model and return it unchanged (for evaluation of the optimisation procedure) and as a SHAPCalculator
     :param results_dir: str: path to root directory with results
     :param origin: Origin: identification of the experiment
-    :param check_unlogging: boolean: if True will ensure that regressors are unlogged and classifiers are not
+    :param check_unlogging: boolean: if True will ensure that regressors are unlogged and classifiers are not;
+                                     default: True
     :return: (sklearn model, SHAPCalculator): model for evaluation of the optimisation procedure,
                                               model for calculation of SHAP values
     """
@@ -129,86 +135,14 @@ def load_model(results_dir, origin, check_unlogging=True):
     # load model for...
     model_fname = usv([pkl for pkl in get_all_files(ml_dir, extend=False) if 'model.pickle' in pkl])
     evaluation_model = find_and_load(ml_dir, model_fname, protocol='pickle')  # ... evaluation of optimisation procedure
-    shap_model = SHAPCalculator(shap_dir, ml_dir, origin, check_unlogging)    # ... calculation of SHAP values
+    shap_model = SHAPCalculator(shap_dir, ml_dir, origin, check_unlogging)  # ... calculation of SHAP values
 
     return evaluation_model, shap_model
 
 
-# # # # # # # # #
-# P R E D I C T #
-# # # # # # # # #
-
-
-def _get_pred_single_sample(f_vals, model, task):
-    # f_vals dla jednego konkretnego związku
-    if task == Task.CLASSIFICATION:
-        return model.predict_proba(f_vals.reshape(1, -1))
-    elif task == Task.REGRESSION:
-        return model.predict(f_vals.reshape(1, -1))
-    else:
-        raise ValueError(TASK_ERROR_MSG(task))
-
-
-def get_predictions_before_after_slow(samples, model, task):
-    before, after = [], []
-    for sample in samples:
-        before.append(_get_pred_single_sample(sample.original_f_vals, model, task))
-        after.append(_get_pred_single_sample(sample.f_vals, model, task))
-    return np.array(before), np.array(after)
-
-
-def _get_pred(f_vals, model, task):
-    # f_vals - array
-    if task == Task.CLASSIFICATION:
-        return model.predict_proba(f_vals)
-    elif task == Task.REGRESSION:
-        return model.predict(f_vals)
-    else:
-        raise ValueError(TASK_ERROR_MSG(task))
-
-
-def get_predictions_before_after(samples, model, task):
-    if len(samples) <= 1:
-        return get_predictions_before_after_slow(samples, model, task)
-
-    # optimised get_predictions_before_after_slow
-    before = np.array([sample.original_f_vals for sample in samples])
-    after = np.array([sample.f_vals for sample in samples])
-
-    return _get_pred(before, model, task), _get_pred(after, model, task)
-
-
-# # # # # # # # # # # # # # #
-# P R E P R O C E S S I N G #
-# # # # # # # # # # # # # # #
-# poniższe funkcje są zależne od tego jak sobie wczytaliśmy dane
-
-def filter_correct_predictions_only(df, task):
-    # return list of SMILES of correct predictions
-    if task == Task.CLASSIFICATION:
-        # classification SVMs might give different answers for `predict` and `predict_proba`
-        df = deepcopy(df[df.true == df.predicted])
-        # TODO uwaga! ten kawałek zakłada, że classes_order = [0, 1, 2] (CHYBA)
-        df['pred_probs'] = df.apply(lambda row: np.argmax([row.zero, row.one, row.two]), axis=1)
-        return sorted(df[df.true == df.pred_probs].index.tolist())
-    elif task == Task.REGRESSION:
-        raise NotImplementedError
-    else:
-        raise ValueError(TASK_ERROR_MSG(task))
-
-
-def group_samples(df, task):
-    # return lists of SMILES of unstable, medium, stable
-
-    if task == Task.CLASSIFICATION:
-        unstable = sorted(df[df.true == 0].index.tolist())
-        medium = sorted(df[df.true == 1].index.tolist())
-        stable = sorted(df[df.true == 2].index.tolist())
-    elif task == Task.REGRESSION:
-        raise NotImplementedError
-    else:
-        raise ValueError(TASK_ERROR_MSG(task))
-    return unstable, medium, stable
+# # # # # # # # # # # # # # # # # # # # #
+# P R E P R O C E S S I N G   U T I L S #
+# # # # # # # # # # # # # # # # # # # # #
 
 
 def intersection_list(*argv):
@@ -225,20 +159,107 @@ def difference_list(*argv):
     return sorted(list(difference))
 
 
+def get_correct_predictions(df, task):
+    """
+    Find samples for which prediction is correct and return their indices (row labels).
+
+    NOTE: in the case of classifiers, we assume that there are three classes and that the predicted probabilities are
+    given in columns named `zero`, `one` and `two`.
+
+    NOTE: classification SVMs might give different answers for `predict` and `numpy.argmax(predict_proba)` because of
+    how `predict_proba` is implemented in sklearn. In this implementation, a prediction is correct only if both
+    `predict` and `numpy.argmax(predict_proba)` return the correct prediction.
+
+    :param df: pandas.DataFrame: predictions in a DataFrame that contains columns `true` (ground-truth) and `predicted`
+    (prediction, i.e. the result of calling function `predict` on a sklearn model)
+    :param task: Task: is the model used to calculate predictions a classifier or a regressor
+    :return: List[Hashable]: a sorted list with indices of samples for which the prediction is correct
+    """
+    df_correct = deepcopy(df[df.true == df.predicted])
+
+    if task == Task.CLASSIFICATION:
+        df_correct['pred_proba'] = df_correct.apply(lambda row: np.argmax([row.zero, row.one, row.two]), axis=1)
+        df_correct = df_correct[df_correct.true == df_correct.pred_proba]
+    elif task == Task.REGRESSION:
+        raise NotImplementedError
+        pass  # doing nothing should be OK but I've never tested this
+    else:
+        raise ValueError(TASK_ERROR_MSG(task))
+
+    return sorted(df_correct.index.tolist())
+
+
+def group_samples(df, task, n_groups=None):
+    """
+    Return indices of samples in each group (class).
+    :param df: pandas.DataFrame: predictions in a DataFrame that contains a column `true` with ground-truth labels
+    :param task: Task: is the model used to calculate predictions a classifier or a regressor
+    :param n_groups: int or None: the number of groups, if None it will be determined; default: None
+    :return: (List[Hashable], ...): a tuple with a sorted list of indices for each group
+    """
+    if task == Task.CLASSIFICATION:
+        n_groups = 1 + df.true.max() if n_groups is None else n_groups
+        groups = (sorted(df[df.true == i].index.tolist()) for i in range(n_groups))
+    elif task == Task.REGRESSION:
+        raise NotImplementedError
+    else:
+        raise ValueError(TASK_ERROR_MSG(task))
+
+    n_samples = sum([len(g) for g in groups])
+    assert df.shape[0] == n_samples, f"{df.shape[0]} samples grouped into {n_samples} samples (n_groups={n_groups})."
+
+    return groups
+
+
 def get_present_features(x_train, threshold):
     """
-    Return indices of features that are present and absent in at least (threshold * n_samples) samples in the training set
+    Return indices of features that are both present and absent in at least `threshold * n_samples` samples in `x_train`
+    :param x_train: numpy.array[samples x features]: train set
+    :param threshold: int: a minimal number of times a feature must be present and absent
+    :return: List[int]: indices of features that are present and absent in at least (threshold * n_samples) samples
     """
-
     n_samples = x_train.shape[0]
-    summed = np.sum(x_train != 0, axis=0)
-    assert summed.shape[0] == x_train.shape[1]
+    n_occurrences = np.sum(x_train != 0, axis=0)
+    assert n_occurrences.shape[0] == x_train.shape[1]
 
     # threshold must be met from both ends
-    sufficient = summed / n_samples >= threshold  # sufficient is array of bools
-    not_too_many = summed / n_samples <= (1 - threshold)
-    satisfied = np.logical_and(sufficient, not_too_many)
-
-    # todo: może dopisać też po nazwach?
-
+    sufficient = n_occurrences / n_samples >= threshold
+    not_too_many = n_occurrences / n_samples <= (1 - threshold)
+    satisfied = np.logical_and(sufficient, not_too_many)  # an array of bools
     return sorted(list(set(np.array(range(len(satisfied)))[satisfied])))
+
+
+# # # # # # # # # # # # # # # # # #
+# P R E D I C T I O N   U T I L S #
+# # # # # # # # # # # # # # # # # #
+
+def get_predictions_before_after(samples, model, task):
+    """
+    For each sample, calculate two predictions: using original feature values (before optimisation) and final feature
+    values (after optimisation).
+    :param samples: Iterable[Sample]: samples for which predictions should be calculated
+    :param model: sklearn-like model to calculate predictions
+    :param task: Task: call `model.predict` (regression) or `model.predict_proba` (classification)
+    :return: (numpy.array[samples (x classes)]: before, numpy.array[samples (x classes)]: after): predictions before
+    and after optimisation for each sample
+    """
+    before = np.array([sample.original_f_vals for sample in samples])
+    after = np.array([sample.f_vals for sample in samples])
+
+    return _get_pred(before, model, task), _get_pred(after, model, task)
+
+
+def _get_pred(f_vals, model, task):
+    """
+    Use `model` to calculate predictions for `f_vals`.
+    :param f_vals: np.array[samples x features]: feature values
+    :param model: sklearn-like model to calculate predictions
+    :param task: Task: call `model.predict` (regression) or `model.predict_proba` (classification)
+    :return: numpy.array[samples (x classes)]: predictions for each sample
+    """
+    if task == Task.CLASSIFICATION:
+        return model.predict_proba(f_vals)
+    elif task == Task.REGRESSION:
+        return model.predict(f_vals)
+    else:
+        raise ValueError(TASK_ERROR_MSG(task))

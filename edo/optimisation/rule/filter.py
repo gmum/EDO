@@ -145,8 +145,7 @@ def rebel_rules_stats(rules, print_func=None):
 
 
 def _group_rules(rules):
-    # groups rules that can be compared by their
-    # (r.ftr_idx, r.origin)
+    # groups rules by (r.ftr_idx, r.origin) so that rules that can be compared are in the same group
     # returns a dictionary (ftr_idx, origin): [rule1, ...]
     groups = defaultdict(list)
     for r in rules:

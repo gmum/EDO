@@ -80,7 +80,7 @@ class SHAPCalculator(object):
         """
         assert isinstance(x, (np.ndarray, Sample)), f"{type(x)}"
         try:
-            assert self._origin == x.s_vals_origin, f"Origin mismatch: {self._origin} != {x.s_vals_origin}"
+            assert self._origin == x.origin, f"Origin mismatch: {self._origin} != {x.origin}"
             assert np.all(self._classes_order == x.classes_order), f"Classes order mismatch: {self._classes_order} != {x.classes_order}"
             f_vals = x.f_vals
         except AttributeError:

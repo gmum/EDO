@@ -1,9 +1,9 @@
 import operator
 
-from .. import Goal, get_random_generator
 from . import Rule
-from ... import Task, TASK_ERROR_MSG
 from ..categorisation import RandomRule
+from .. import Goal, get_random_generator
+from ... import Task, TASK_ERROR_MSG
 
 
 def derive_well_separated_rules(ftr, task):
@@ -33,7 +33,7 @@ def derive_well_separated_rules(ftr, task):
                 for (action, goal, relation) in setup:
                     individual_params = {'action': action, 'goal': goal,
                                          'criterion_relation': relation,
-                                         'derivation': (sol, goal)}
+                                         'derivation': sol}
 
                     rules.append(Rule(**ftr_params, **cls_params, **individual_params))
 
@@ -74,7 +74,7 @@ def derive_high_impact_rules(ftr, params, task):
                 individual_params = {'action': action, 'goal': goal,
                                      'criterion_relation': relation,
                                      'criterion_reference_point': rv,
-                                     'derivation': (cls_info, goal)}
+                                     'derivation': cls_info}
 
                 rules.append(Rule(**ftr_params, **cls_params, **individual_params))
 
@@ -114,7 +114,7 @@ def derive_random_rules_sample(ftr, task):
             g = rng.choice(goals, 1)[0]
             params = {'action': a, 'goal': g,
                       'criterion_relation': always_satisfied,
-                      'derivation': (RandomRule(), g),
+                      'derivation': RandomRule(),
                       'class_index': cls_idx,
                       'class_name': ftr._classes_order[cls_idx],
                       'criterion_reference_point': 0}
@@ -126,7 +126,7 @@ def derive_random_rules_sample(ftr, task):
         g = rng.choice(goals, 1)[0]
         params = {'action': a, 'goal': g,
                   'criterion_relation': always_satisfied,
-                  'derivation': (RandomRule(), g),
+                  'derivation': RandomRule(),
                   'class_index': None, 'class_name': None,
                   'criterion_reference_point': 0}
         individual_params.append(params)

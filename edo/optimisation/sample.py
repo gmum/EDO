@@ -35,14 +35,14 @@ def make_samples(sample_indices, feature_values, shap_values, smiles_order, orig
 
 
 class Sample(object):
-    def __init__(self, feature_values, shap_values, shap_values_origin, classes_order=None, smiles=None):
+    def __init__(self, feature_values, shap_values, origin, classes_order=None, smiles=None):
         """
         Sample that can be optimised (e.x. a molecule).
-        :param feature_values: numpy.array [features]: matrix of feature values
-        :param shap_values: shap_values: numpy.array [(classes x) features]: matrix of SHAP values
-        :param shap_values_origin: Origin: description of the model used to calculate SHAP values
-        :param classes_order: numpy.array: classes order from the model used to calculate SHAP values or None in the
-                                           case of regressors; default: None
+        :param feature_values: numpy.array[features]: matrix of feature values
+        :param shap_values: shap_values: numpy.array[(classes x) features]: matrix of SHAP values
+        :param origin: Origin: description of the model used to calculate SHAP values
+        :param classes_order: numpy.array[classes] or None: classes order from the model used to calculate SHAP values
+                                                            or None in the case of regressors; default: None
         :param smiles: str: SMILES; default: None
         """
         validate_shapes(feature_values, shap_values, classes_order=classes_order)
@@ -51,16 +51,16 @@ class Sample(object):
         self.f_vals = deepcopy(feature_values)  # current values, possibly updated
         self.original_s_vals = shap_values
         self.s_vals = deepcopy(shap_values)
-        self.s_vals_origin = make_origin(shap_values_origin)
+        self.origin = make_origin(origin)
         self.classes_order = classes_order
         self.smiles = smiles
         self.history = []
 
     def __str__(self):
-        return f"{self.smiles} ({self.s_vals_origin})"
+        return f"{self.smiles} ({self.origin})"
 
     def __repr__(self):
-        return f"Sample({repr(self.original_f_vals)}, {repr(self.original_s_vals)}, {repr(self.s_vals_origin)}, {repr(self.classes_order)}, {repr(self.smiles)})"
+        return f"Sample({repr(self.original_f_vals)}, {repr(self.original_s_vals)}, {repr(self.origin)}, {repr(self.classes_order)}, {repr(self.smiles)})"
 
     def update(self, rule, skip_criterion_check=False, shap_calculator=None, extended_history=False):
         """
@@ -68,8 +68,6 @@ class Sample(object):
         :param rule: Rule: rule to apply
         :param skip_criterion_check: boolean: if True then rule can be applied even if criterion is not satisfied;
                                               default: False
-        Use case: if rule has a different origin than SHAP values of the sample then checking the criterion
-        does not make sense because SHAP values might be completely different.
         :param shap_calculator: SHAPCalculator or None: a model to calculate SHAP values of the optimised sample,
                                 if SHAP values should not be recalculated use None; default: None
         :param extended_history: if True will use ExtendedHistoryRecord instead of HistoryRecord; default: False
@@ -100,8 +98,8 @@ class Sample(object):
     def get_s_vals(self, new_f_vals):
         """
         Search history to check if SHAP values for these feature values are already calculated.
-        :param new_f_vals: np.array [features]: matrix of feature values
-        :return: np.array [features] or None: SHAP values for new_f_vals or None if they are not found in the history
+        :param new_f_vals: np.array[features]: matrix of feature values
+        :return: np.array[features] or None: SHAP values for new_f_vals or None if they are not found in the history
         """
         for entry in reversed(self.history):
             if not isinstance(entry, ExtendedHistoryRecord) or np.any(entry.f_vals != new_f_vals):

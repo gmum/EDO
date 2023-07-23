@@ -14,8 +14,7 @@ from edo.optimisation.rule.generate import derive_well_separated_rules, derive_h
 from edo.optimisation.rule.generate import derive_random_rules_sample
 from edo.optimisation.sample import make_samples
 
-from edo.optimisation.utils import get_predictions_before_after, get_predictions_before_after_slow
-from edo.optimisation.utils import filter_correct_predictions_only, group_samples, intersection_list, difference_list
+from edo.optimisation.utils import get_correct_predictions, group_samples, intersection_list, difference_list
 from edo.optimisation.rule.filter import filter_rules, condition_well_separated, condition_high_impact
 from edo.optimisation.rule.filter import filter_out_unimportant
 
@@ -65,29 +64,10 @@ class TestOptimisationUtils(unittest.TestCase):
         m1_origin = make_origin(('human', 'random', 'krfp', self.task.value, 'trees'))
         self.reg_model, self.reg_shapcalculator = load_model(self.results_dir, m1_origin, self.check_unlogging)
 
-    def test_get_predictions(self):
-        print("Testing get_predictions_before_after...")
-        for model, task in ((self.model, self.task), (self.reg_model, self.reg_task)):
-            fast_before, fast_after = get_predictions_before_after(self.my_samples, model, task)
-            slow_before, slow_after = get_predictions_before_after_slow(self.my_samples, model, task)
-
-            if task == Task.CLASSIFICATION:
-                new_shape = (slow_after.shape[0], slow_after.shape[-1])
-            elif task == Task.REGRESSION:
-                new_shape = (slow_before.shape[0])
-            else:
-                raise ValueError(TASK_ERROR_MSG(task))
-
-            slow_before = slow_before.reshape(new_shape)
-            slow_after = slow_after.reshape(new_shape)
-
-            self.assertTrue(np.all(np.isclose(slow_before, fast_before)))
-            self.assertTrue(np.all(np.isclose(slow_after, fast_after)))
-
-    def test_filter_correct_predictions_only(self):
-        print("Testing filter_correct_predictions_only...")
+    def test_get_correct_predictions(self):
+        print("Testing get_correct_predictions...")
         for df in [self.tr_preds, self.test_preds]:
-            filtered_smis = filter_correct_predictions_only(df, self.task)
+            filtered_smis = get_correct_predictions(df, self.task)
             self.assertEqual(filtered_smis, sorted(filtered_smis),
                              msg=f"Returned result is not sorted: {filtered_smis}")
 

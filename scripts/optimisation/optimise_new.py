@@ -14,7 +14,7 @@ from edo.wrappers import LoggerWrapper
 from edo.optimisation import Goal, set_seed, get_random_generator
 from edo.optimisation.utils import find_experiment, load_train_test, load_predictions, load_shap_files, load_model
 from edo.optimisation.utils import get_present_features, difference_list, intersection_list
-from edo.optimisation.utils import filter_correct_predictions_only, group_samples
+from edo.optimisation.utils import get_correct_predictions, group_samples
 
 from edo.optimisation.feature import make_features
 from edo.optimisation.rule.filter import condition_well_separated, condition_high_impact
@@ -156,10 +156,10 @@ if __name__ == "__main__":
     tr_preds, test_preds = load_predictions(ml_m1, task)
 
     if correct_only:
-        train_smi = filter_correct_predictions_only(tr_preds, task)
+        train_smi = get_correct_predictions(tr_preds, task)
     else:
         train_smi = sorted(tr_preds.index.tolist())  # use all samples to derive rules
-    test_correct_smi = filter_correct_predictions_only(test_preds, task)
+    test_correct_smi = get_correct_predictions(test_preds, task)
     test_incorrect_smi = difference_list(test_preds.index.tolist(), test_correct_smi)
 
     groups_train_samples = group_samples(tr_preds, task)

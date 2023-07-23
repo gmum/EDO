@@ -43,16 +43,12 @@ def optimise(sample, rule, skip_criterion_check=False, shap_calculator=None, ext
         rule to apply
     skip_criterion_check: boolean
         if True then rule can be applied even if criterion is not satisfied; default: False
-        Use case: if rule has a different origin than SHAP values of the sample then checking the criterion
-        does not make sense because SHAP values might be completely different.
     shap_calculator: SHAPCalculator or None
         a model to calculate SHAP values of the optimised sample, if SHAP values should not be recalculated use None;
         default: None
     extended_history: boolean
         if True will use ExtendedHistoryRecord instead of HistoryRecord; default: False
     """
-
-    assert sample.s_vals_origin.representation == rule.origin.representation, f"Sample has different representation than the rule is derived for: {sample.s_vals_origin.representation} != {rule.origin.representation}."
 
     if rule.can_be_applied(sample, skip_criterion_check):
         new_f_vals = rule.action.do(sample.f_vals)
@@ -63,8 +59,8 @@ def optimise(sample, rule, skip_criterion_check=False, shap_calculator=None, ext
         new_f_vals = None
         success = False
 
-    # In some scenarios only the last rule asks to update SHAP values. Even it if was not applied, a previous one
-    # could have changed feature values and so SHAP values must be updated even if success==False.
+    # In some scenarios only the last rule asks to update SHAP values. Even if this rule was not applied, a previous one
+    # could have changed the feature values and so SHAP values must be updated even if success==False.
     new_shaps = None
     if shap_calculator is not None:
         new_shaps = sample.get_s_vals(new_f_vals)  # maybe we already have it calculated?
