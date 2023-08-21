@@ -28,7 +28,7 @@ def derive_well_separated_rules(ftr, task):
 
                 cls_params = {'class_index': cls_idx,
                               'class_name': ftr._classes_order[cls_idx],
-                              'criterion_reference_point': sol.thresholds}
+                              'criterion_reference_value': sol.thresholds}
 
                 for (action, goal, relation) in setup:
                     individual_params = {'action': action, 'goal': goal,
@@ -73,7 +73,7 @@ def derive_high_impact_rules(ftr, params, task):
             for (action, goal, relation, rv) in setup:
                 individual_params = {'action': action, 'goal': goal,
                                      'criterion_relation': relation,
-                                     'criterion_reference_point': rv,
+                                     'criterion_reference_value': rv,
                                      'derivation': cls_info}
 
                 rules.append(Rule(**ftr_params, **cls_params, **individual_params))
@@ -117,7 +117,7 @@ def derive_random_rules_sample(ftr, task):
                       'derivation': RandomRule(),
                       'class_index': cls_idx,
                       'class_name': ftr._classes_order[cls_idx],
-                      'criterion_reference_point': 0}
+                      'criterion_reference_value': 0}
             individual_params.append(params)
 
     elif task == Task.REGRESSION:
@@ -128,7 +128,7 @@ def derive_random_rules_sample(ftr, task):
                   'criterion_relation': always_satisfied,
                   'derivation': RandomRule(),
                   'class_index': None, 'class_name': None,
-                  'criterion_reference_point': 0}
+                  'criterion_reference_value': 0}
         individual_params.append(params)
     else:
         raise ValueError(TASK_ERROR_MSG(task))

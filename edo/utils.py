@@ -10,19 +10,20 @@ from .config import parse_data_config, parse_representation_config, parse_task_c
 
 
 def index_of_smiles(smiles_order, smi):
-    """Return index of a given SMILE or None."""
-    try:
-        if isinstance(smi, str):
-            # all indices of smiles
-            return np.where(smiles_order == smi)[0]
-        elif isinstance(smi, Iterable):
-            # TODO: lepsze obsłużenie IndexErrora
-            # list comprehension because the order is important
-            # one index per smiles
-            return [np.where(smiles_order == s)[0][0] for s in smi]
-    except IndexError:
-        # element not found in the array
-        return None
+    """Return index of the first position of each SMILES or None."""
+    if isinstance(smi, str):
+        smi = [smi, ]  # now it's Iterable
+    assert isinstance(smi, Iterable), f"`smi` should be Iterable or string, is {type(smi)}."
+
+    indices = []
+    for s in smi:
+        try:
+            indices.append(np.where(smiles_order == s)[0][0])
+        except IndexError:
+            indices.append(None)
+
+    assert len(indices) == len(smi), f"Length mismatch {len(indices)} != {len(smiles_order)}."
+    return indices
 
 
 def usv(it):
