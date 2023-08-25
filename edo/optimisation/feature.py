@@ -47,7 +47,7 @@ class Feature(object):
         :param ftr_index: index of this feature
         :param classes_order: numpy.array: classes order from model used to calculate SHAP values or None if the model
                                            is a regressor; default: None
-        :param task: Task: is the model used to calculate SHAP values a classifier or a regressor if None then
+        :param task: Task: is the model used to calculate SHAP values a classifier or a regressor, if None then it is
                            deduced using s_vals; default: None
         :param name: str: human-friendly identifier of the feature; default: None
         """

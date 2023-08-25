@@ -56,7 +56,6 @@ class TestRandomGenerator(unittest.TestCase):
         arr4 = rng.choice(arr1 + arr2, size=magic_number)
         return arr1, arr2, arr3, arr4
 
-
     def test_random_generator(self):
         print("Testing reproducibility of random generator...")
         for i in range(self.n):
@@ -66,7 +65,6 @@ class TestRandomGenerator(unittest.TestCase):
 
             for s1, s2 in zip(sample1, sample2):
                 self.assertTrue(np.all(s1 == s2), f'{s1}!={s2}')
-
 
 
 if __name__ == '__main__':

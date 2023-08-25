@@ -23,7 +23,7 @@ from edo.optimisation.feature import make_features
 from edo.optimisation.rule.generate import derive_well_separated_rules, derive_high_impact_rules
 from edo.optimisation.rule.generate import derive_random_rules_sample
 from edo.optimisation.rule.filter import filter_rules, filter_out_unimportant
-from edo.optimisation.rule.filter import filter_contradictive_soft, rebel_rules_stats
+from edo.optimisation.rule.filter import filter_contradictory_soft, contradictory_rules_stats
 from edo.optimisation.sample import make_samples
 from edo.optimisation.scenario import optimise
 
@@ -230,10 +230,10 @@ if __name__ == "__main__":
         # filtering out contradictive rules (SOFT VERSION)
         rules_noncontradictive = {}
         if no_contradictive:
-            rebel_rules_stats(my_rules, print_func=pprint)
+            contradictory_rules_stats(my_rules, print_func=pprint)
             logger_wrapper.logger.info(' ')
-            my_rules = filter_contradictive_soft(my_rules)
-            rebel_rules_stats(my_rules, print_func=pprint)
+            my_rules = filter_contradictory_soft(my_rules)
+            contradictory_rules_stats(my_rules, print_func=pprint)
             logger_wrapper.logger.info('After filtering out contradictive rules')
             rules_noncontradictive = rule_stats(my_rules, print_func=pprint)
 

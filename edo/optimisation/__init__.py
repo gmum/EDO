@@ -17,6 +17,7 @@ def get_random_generator():
     return RNG
 
 
+# determines if the predicted value should be maximised of minimised
 class Goal(Enum):
     MAXIMISATION = 'maximisation'
     MINIMISATION = 'minimisation'
@@ -28,26 +29,22 @@ HistoryRecord = namedtuple('HistoryRecord', ['success', 'rule'])
 ExtendedHistoryRecord = namedtuple('ExtendedHistoryRecord', ['success', 'rule', 'f_vals', 's_vals'])
 
 
-# TODO: poniższa forma dokumentacji jest niedomyślna dla Pycharma ale lepiej się czyta. Może zmienić też w innych plikach?
 def optimise(sample, rule, skip_criterion_check=False, shap_calculator=None, extended_history=False):
     """
     This function is called by both Sample.update and Rule.apply to provide a shared implementation.
     It checks if rule can be applied and changes sample inplace by:
     - updating its feature values (if rule can be applied) and
     - updating its history (always) and
-    - updating its SHAP values (if update_shap is not None).
-    
-    sample: Sample
-        sample to be optimised
-    rule: Rule
-        rule to apply
-    skip_criterion_check: boolean
-        if True then rule can be applied even if criterion is not satisfied; default: False
-    shap_calculator: SHAPCalculator or None
-        a model to calculate SHAP values of the optimised sample, if SHAP values should not be recalculated use None;
-        default: None
-    extended_history: boolean
-        if True will use ExtendedHistoryRecord instead of HistoryRecord; default: False
+    - updating its SHAP values (if shap_calculator is not None).
+
+    :param sample: Sample: sample to be optimised
+    :param rule: Rule: rule to apply
+    :param skip_criterion_check: boolean: if True then rule can be applied even if criterion is not satisfied;
+                                          default: False
+    :param shap_calculator: SHAPCalculator or None: a model to calculate updated SHAP values or None to skip update;
+                                                    default: None
+    :param extended_history: boolean: if True will use ExtendedHistoryRecord instead of HistoryRecord; default: False
+    :return: Sample: sample
     """
 
     if rule.can_be_applied(sample, skip_criterion_check):
@@ -72,3 +69,5 @@ def optimise(sample, rule, skip_criterion_check=False, shap_calculator=None, ext
         sample.history.append(HistoryRecord(success, rule))
     else:
         sample.history.append(ExtendedHistoryRecord(success, rule, new_f_vals, new_shaps))
+
+    return sample

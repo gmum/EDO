@@ -18,7 +18,7 @@ class TestAsserts(unittest.TestCase):
         for i in range(self.n):
             arr = np.random.permutation(
                 [0] * np.random.randint(0, self.max_size) + [1] * np.random.randint(0, self.max_size))
-            assert_binary(arr)  # to powinno przejść
+            assert_binary(arr)
 
             arr1 = np.random.randint(low=-self.max_size, high=0, size=np.random.randint(1, self.max_size))  # negative
             arr2 = np.random.randint(low=2, high=self.max_size,

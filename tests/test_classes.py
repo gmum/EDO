@@ -75,14 +75,12 @@ class TestOptimisationUtils(unittest.TestCase):
                 smi_row = df.loc[smi]
                 smi_true = smi_row.loc['true']
                 smi_predicted = smi_row.loc['predicted']
-                # TODO: te warunki pewnie można jakoś uprościć
                 if smi in filtered_smis:
                     # prediction should be correct
                     self.assertEqual(smi_true, smi_predicted, msg=f"{smi_true} != {smi_predicted} ({smi})")
 
                     if self.task == Task.CLASSIFICATION:
-                        # TODO uwaga! ten kawałek zakłada, że classes_order = [0, 1, 2] (CHYBA)
-                        # tak samo jak w testowanej funkcji
+                        # NOTE: it assumes that classes_order = [0, 1, 2]
                         argmax_class = np.argmax([smi_row.loc[c] for c in ['zero', 'one', 'two']])
                         self.assertEqual(smi_true, argmax_class, msg=f'{smi_true} != {argmax_class} ({smi})')
                 else:
@@ -142,7 +140,7 @@ class TestOptimisationUtils(unittest.TestCase):
 
             for v in all_values:
                 if v in difference:
-                    self.assertIn(v, ref_arr)  # zbedne, bo sprawdzamy issubset wczesniej
+                    self.assertIn(v, ref_arr)
                     self.assertFalse(np.any([v in arr for arr in arrays[1:]]))
                 else:
                     # not present in ref_arr OR present in ref_arr and in any others
@@ -180,10 +178,8 @@ class TestOptimisationUtils(unittest.TestCase):
         for n in range(self.n):
             score = np.random.rand()
             ws_condition = lambda r: condition_well_separated(r, score)
-            # ws_filtered = filter_rules(all_rules, ws_condition)
             ws_filtered_d = [r.as_dict() for r in filter_rules(all_rules, condition=ws_condition)]
             hi_condition = lambda r: condition_high_impact(r, score)
-            # hi_filtered = filter_rules(all_rules, hi_condition)
             hi_filtered_d = [r.as_dict() for r in filter_rules(all_rules, condition=hi_condition)]
 
             for rule in all_rules:
@@ -200,22 +196,6 @@ class TestOptimisationUtils(unittest.TestCase):
                     self.assertIn(rule_d, ws_filtered_d)
                 else:
                     raise NotImplementedError(f"Derivation type {type(derivation)} is not implemented!")
-
-    @unittest.skip("Nie wiem na razie, jak to zrobić.")
-    def test_filter_out_unimportant(self):
-        print("Testing filter_out_unimportant...")
-        all_rules = self.well_separated_rules + self.high_impact_rules + self.random_rules
-        all_s_vals = np.array([s.s_vals for s in self.my_samples]).flatten()
-        s_vals_max = np.max(all_s_vals)
-        s_vals_min = np.min(all_s_vals)
-        s_vals_range = s_vals_max - s_vals_min
-
-        for n in range(self.n):
-            max_ratio = np.random.rand()
-            miu = (np.random.rand() * s_vals_range) + s_vals_min
-            only_important = filter_out_unimportant(all_rules, self.my_features, {'miu': miu}, max_ratio, self.task)
-            for rule in all_rules:
-                pass  # na razie nie wiem, jak to zrobić
 
 
 if __name__ == '__main__':

@@ -36,10 +36,10 @@ def deduce_task(task, s_vals=None):
     return task
 
 
-# Origin identifies a ML model and can be used to load all data for this model (edo.optimisation.utils.find_experiment)
+# Origin identifies a ML model and can be used to load the corresponding data (edo.optimisation.utils.find_experiment)
 # ex. Origin('human', 'random', 'KRFP', 'classification', 'SVM') is
 # an SVM classifier trained on randomly split human data represented with KRFP
-# note: hypothetically, there can be more than one model with such a specification, though not in our project
+# NOTE: hypothetically, there can be more than one model with such a specification, though not in our project
 Origin = namedtuple('Origin', ['dataset', 'split', 'representation', 'task', 'model'])
 
 

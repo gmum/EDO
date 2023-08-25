@@ -1,7 +1,8 @@
+import numpy as np
 from copy import deepcopy
 from collections import defaultdict
 
-from ... import Task
+from ... import Task, no_print
 from ..categorisation import SeparationResult, HighImpactResult
 
 
@@ -10,14 +11,17 @@ from ..categorisation import SeparationResult, HighImpactResult
 # # # # # # # # # # # # # # # # # # # # # # #
 
 def filter_rules(rules, goal=None, cls_name=None, condition=None):
-    # returns rules that optimise given goal
-    # (for a given class (identified by cls_name not its index!))
-    # and satisfy a given condition
-
-    # must make a new list so that the given list is not updated!
+    """
+    Filter rules by their goal, class they are derived for or by condition they must satisfy.
+    :param rules: Iterable[Rule]: rules to filter
+    :param goal: Goal or None: should the rules maximise or minimise the predicted value
+    :param cls_name: int, str or None:
+    :param condition: function[Rule -> boolean] or None:
+    :return: List[Rule]: subset of rules
+    """
     filtered = deepcopy(rules)
     if goal is not None:
-        filtered = [r for r in rules if r.goal == goal]
+        filtered = [r for r in filtered if r.goal == goal]
     if cls_name is not None:
         filtered = [r for r in filtered if r.cls_name == cls_name]
     if condition is not None:
@@ -26,11 +30,17 @@ def filter_rules(rules, goal=None, cls_name=None, condition=None):
     return filtered
 
 
-# TODO: dwa poniższe można przepisać jako universal condition i po prostu podawać im klasę
 def condition_well_separated(rule, min_score):
-    # (only rules based on SeparationResult can be filtered out)
-    # if rule derivation is based on a SeparationResult then the rule is kept only if score >= min_score
-    # if rule derivation is based on a different result then the rule is kept
+    """
+    Condition for well separated rules:
+    - if rule derivation is based on a SeparationResult then the rule is kept only if score >= min_score
+    - if rule derivation is based on a different result then the rule is kept
+    Only rules based on SeparationResult can be filtered out.
+
+    :param rule: Rule: rule for which condition should be checked
+    :param min_score: float: minimal separation quality
+    :return: False if `rule` is based on a SeparationResult and its score < min_score; True otherwise
+    """
     if not isinstance(rule.derivation[0], SeparationResult):
         return True  # rules other than well_separated are kept
     else:
@@ -38,28 +48,35 @@ def condition_well_separated(rule, min_score):
 
 
 def condition_high_impact(rule, min_score):
-    # (only rules based on HighImpactResult can be filtered out)
-    # if rule derivation is based on a HighImpactResult then the rule is kept only if score >= min_score
-    # if rule derivation is based on a different result then the rule is kept
+    """
+    Condition for high impact rules:
+    - if rule derivation is based on a HighImpactResult then the rule is kept only if score >= min_score
+    - if rule derivation is based on a different result then the rule is kept
+    Only rules based on HighImpactResult can be filtered out.
+
+    :param rule: Rule: rule for which condition should be checked
+    :param min_score: float: minimal impact score
+    :return: False if `rule` is based on a HighImpactResult and its score < min_score; True otherwise
+    """
     if not isinstance(rule.derivation[0], HighImpactResult):
         return True  # rules other than high_impact are kept
     else:
         return rule.derivation[0].score >= min_score
 
 
-# # # # # # # # # # # # # # # #
-# B Y   U N I M P O R T A N T #
-# # # # # # # # # # # # # # # #
+# # # # # # # # # # # # # # #
+# B Y   I M P O R T A N C E #
+# # # # # # # # # # # # # # #
 
 def filter_out_unimportant(rules, features, params, max_ratio, task):
     """
-
-    :param rules: list of rules
-    :param features: list of features
-    :param params: params for calculating unimportance (miu and metric)
-    :param max_ratio: maximal percentage of unimportant samples allowed
-    :param task: task
-    :return: important rules
+    Filter rules by the importance of features used to derive them.
+    :param rules: Iterable[Rule]: rules to filter
+    :param features: Iterable[Feature]: features used to derive rules
+    :param params: {'niu': float, 'metric': str}: params for Feature.unimportant() to calculate unimportance score
+    :param max_ratio: maximal allowed unimportance score
+    :param task: Task: are the rules derived using a regression or a classification model
+    :return: List[Rule]: rules that are derived on sufficiently important features
     """
     unimportant = _get_unimportnant(features, params, max_ratio, task)
     important_rules = [r for r in rules if (r.ftr_idx, r.cls_idx) not in unimportant]
@@ -68,26 +85,23 @@ def filter_out_unimportant(rules, features, params, max_ratio, task):
 
 def _get_unimportnant(features, params, max_ratio, task):
     """
-
-    :param features:
-    :param params:
-    :param max_ratio:
-    :param task:
-    :return: list of tuples (feature index, class index) that identifies important features
+    Find unimportant features.
+    :param features: Iterable[Feature]: features to filter
+    :param params: {'niu': float, 'metric': str}: params for Feature.unimportant() to calculate unimportance score
+    :param max_ratio: maximal allowed unimportance score
+    :param task: Task: are the rules derived using a regression or a classification model
+    :return: List[Tuple[feature index:int, class_index:int, str or None]]: tuples that identify unimportant features
+    NOTE: features are identified by their index and class for which SHAP values are derived: (ft.ftr_index, cls_idx).
     """
-    # TODO identyfikuje cechoklasy po (ft.ftr_index, cls_idx)
-    # zwraca listę tupli
     unimportant = []
     for ft in features:
         info = ft.unimportant(**params)
         if task == Task.CLASSIFICATION:
-            # TODO uwaga! ten kawałek identyfikuje cechoklasy po ft.ftr_index, cls_idx
             for cls_idx, cls_info in enumerate(info):
                 if cls_info.score >= max_ratio:
                     unimportant.append((ft.ftr_index, cls_idx))
         elif task == Task.REGRESSION:
             raise NotImplementedError
-            # TODO: napisane na sucho, never run or tested
             if info.score >= max_ratio:
                 unimportant.append((ft.ftr_index, None))
         else:
@@ -99,54 +113,79 @@ def _get_unimportnant(features, params, max_ratio, task):
 # B Y   C O N T R A D I C T I O N #
 # # # # # # # # # # # # # # # # # #
 
-def filter_contradictive_soft(rules):
-    # grupuje cechy, które mogą być porównywane
-    # dla każdej cechy w grupie wylicza z iloma innymi jest niezgodna
-    # usuwa rulę, która jest niezgodna z największą liczbą rul w grupie
-    # powtarza, aż w grupie nie będzie contradictionów
-    g = _group_rules(rules)
-    good_rules = []
+def filter_contradictory_soft(rules):
+    """
+    Remove contradictory rules. This is done by:
+    1. grouping rules that can contradict one another,
+    2. from each group removing all rules that contradict the highest number of other rules,
+    3. repeating step 2 until no two rules contradict one another.
 
+    :param rules: Iterable[Rule]: rules to filter
+    :return: List[Rule]: a subset of rules such that no two rules contradict one another
+    """
+    # group rules that can contradict one another
+    g = _group_rules(rules)
+
+    good_rules = []
     for k in g.keys():
         group = g[k]
 
-        # remove rebel rules
+        # repeat removing rules until no two rules contradict one another
         while True:
+            # for each rule count how many other rules in contradicts
             n_group = []
-            for ra in group:
-                n_contradictions = len([1 for rb in group if ra.contradicts(rb)])
-                n_group.append((ra, n_contradictions))
+            for rule in group:
+                n_contradictions = len([other for other in group if rule.contradicts(other)])
+                n_group.append((rule, n_contradictions))
 
+            # list of contradiction counts
             ens = [n for r, n in n_group]
-            if sum(ens) == 0:
+            if sum(ens) == 0:  # no two rules contradict one another
                 break
 
+            # remove rules that contradict the highest number of other rules
             group = [r for r, n in n_group if n < max(ens)]
 
         good_rules.extend(group)
     return good_rules
 
 
-def rebel_rules_stats(rules, print_func=None):
+def contradictory_rules_stats(rules, print_func=no_print):
+    """
+    Print a summary of rules that includes:
+    - the number of rules,
+    - the number of groups and the total number of rules in groups,
+      - groups consist of rules that can be compared, i.e. share the origin and operate on the same feature,
+      - a group must contain at least two rules,
+    - the number of rules that contradict at least one other rule.
+    :param rules: List[Rule]: rules to summarise
+    :param print_func: a function to print with; default: edo.no_print (prints nothing)
+    :return: None
+    """
     g = _group_rules(rules)
+    groups = [g[k] for k in g.keys() if len(g[k]) > 1]
 
-    n_condratictive_rules = 0
-    for k in g.keys():
-        for ra in g[k]:
-            n_contradictions = len([1 for rb in g[k] if ra.contradicts(rb)])
-            if n_contradictions != 0:
-                n_condratictive_rules += 1
+    n_contradictory_rules = 0
+    for group in groups:
+        for rule in group:
+            if np.any([rule.contradicts(other) for other in group]):
+                n_contradictory_rules += 1
 
-    if print_func is not None:
-        print_func(f"Wszystkich reguł: {len(rules)}, z czego")
-        print_func(f"{sum([len(g[k]) for k in g.keys() if len(g[k])>1])} reguł w {len(g.keys())} grupach*")
-        print_func(f"{n_condratictive_rules} condratictive rules")
-        print_func("* przez grupę rozumiemy conajmniej dwie rule")
+    print_func(f"All rules: {len(rules)}, among them")
+    print_func(f"{sum([len(g) for g in groups])} rules in {len(groups)} groups*")
+    print_func(f"{n_contradictory_rules} contradictory rules")
+    print_func("* a group must consist of at least two rules")
+    return None
 
 
 def _group_rules(rules):
-    # groups rules by (r.ftr_idx, r.origin) so that rules that can be compared are in the same group
-    # returns a dictionary (ftr_idx, origin): [rule1, ...]
+    """
+    Group rules by their origin and the index of feature they modify so that rules that can be compared are in the same
+    group.
+    :param rules: Iterable[Rule]: rules to group
+    :return: {(feature_index, origin):[rule1, ...]}: a dictionary with (feature_index, origin) as keys
+                                                     and lists of rules as values
+    """
     groups = defaultdict(list)
     for r in rules:
         groups[(r.ftr_idx, r.origin)].append(r)

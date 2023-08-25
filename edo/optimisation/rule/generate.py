@@ -6,14 +6,20 @@ from .. import Goal, get_random_generator
 from ... import Task, TASK_ERROR_MSG
 
 
-def derive_well_separated_rules(ftr, task):
+def derive_well_separated_rules(feature, task):
+    """
+    Derive well-separated rules for feature. Rules for both maximisation and minimisation are derived.
+    :param feature: Feature: feature for which the rules are derived
+    :param task: Task: is the model used to calculate SHAP values a classifier or a regressor
+    :return: List[Rule]: list of the derived rules
+    """
     rules = []
-    info = ftr.well_separated()
-    ftr_params = {'origin': ftr.s_vals_origin, 'feature_index': ftr.ftr_index}
+    info = feature.well_separated()
+    ftr_params = {'origin': feature.s_vals_origin, 'feature_index': feature.ftr_index}
 
     if task == Task.CLASSIFICATION:
         for cls_idx, cls_equivalent_solutions in enumerate(info):
-            # well separated returns all optimal solutions
+            # well_separated gives all optimal solutions
             for sol in cls_equivalent_solutions:
                 left_reg, right_reg = sol.regions
                 if left_reg.majority == 0 and right_reg.majority == 1:
@@ -23,11 +29,12 @@ def derive_well_separated_rules(ftr, task):
                     setup = [('add', Goal.MINIMISATION, operator.gt),
                              ('remove', Goal.MAXIMISATION, operator.lt)]
                 else:
+                    # this should never happen
                     msg = f"In well separated result left_reg.majority={left_reg.majority} and right_reg.majority={right_reg.majority}"
                     raise RuntimeError(msg)
 
                 cls_params = {'class_index': cls_idx,
-                              'class_name': ftr._classes_order[cls_idx],
+                              'class_name': feature._classes_order[cls_idx],
                               'criterion_reference_value': sol.thresholds}
 
                 for (action, goal, relation) in setup:
@@ -45,11 +52,18 @@ def derive_well_separated_rules(ftr, task):
     return rules
 
 
-def derive_high_impact_rules(ftr, params, task):
+def derive_high_impact_rules(feature, params, task):
+    """
+    Derive high impact rules for feature. Rules for both maximisation and minimisation are derived.
+    :param feature: Feature: feature for which the rules are derived
+    :param params: {'gamma':float, 'metric':str}: parameters of high impact rules
+    :param task: Task: is the model used to calculate SHAP values a classifier or a regressor
+    :return: List[Rule]: list of the derived rules
+    """
     rules = []
-    info = ftr.high_impact(**params)
-    ftr_params = {'origin': ftr.s_vals_origin,
-                  'feature_index': ftr.ftr_index}
+    info = feature.high_impact(**params)
+    ftr_params = {'origin': feature.s_vals_origin,
+                  'feature_index': feature.ftr_index}
 
     if task == Task.CLASSIFICATION:
         for cls_idx, cls_info in enumerate(info):
@@ -64,11 +78,12 @@ def derive_high_impact_rules(ftr, params, task):
                 setup = [('add', Goal.MINIMISATION, operator.gt, -ref_val),
                          ('remove', Goal.MAXIMISATION, operator.lt, ref_val)]
             else:
+                # this should never happen
                 msg = f"In high impact result loss_region.majority={loss_reg.majority} and gain_region.majority={gain_reg.majority}"
                 raise RuntimeError(msg)
 
             cls_params = {'class_index': cls_idx,
-                          'class_name': ftr._classes_order[cls_idx]}
+                          'class_name': feature._classes_order[cls_idx]}
 
             for (action, goal, relation, rv) in setup:
                 individual_params = {'action': action, 'goal': goal,
@@ -90,45 +105,55 @@ def derive_high_impact_rules(ftr, params, task):
 # R A N D O M   R U L E S #
 # # # # # # # # # # # # # #
 
-# clever rules have criteria based on functions from operator
-# random rules have this
 def always_satisfied(a, b):
+    """
+    clever rules have criteria based on functions from operator module random rules have this
+    :param a: anything
+    :param b: anything
+    :return: True
+    """
     return True
 
 
-def derive_random_rules_sample(ftr, task):
-    # jedna cechoklasa -> jedna rula
-
+def derive_random_rules_sample(feature, task):
+    """
+    Derive random rules for feature. Rules for both maximisation and minimisation are derived.
+    :param feature: Feature: feature for which the rules are derived
+    :param params: {'gamma':float, 'metric':str}: parameters of high impact rules
+    :param task: Task: is the model used to calculate SHAP values a classifier or a regressor
+    :return: List[Rule]: list of the derived rules
+    """
     rng = get_random_generator()  # ensure reproducibility
-    ftr_params = {'origin': ftr.s_vals_origin, 'feature_index': ftr.ftr_index}
+    ftr_params = {'origin': feature.s_vals_origin, 'feature_index': feature.ftr_index}
 
     actions = ['add', 'remove']
     goals = [Goal.MAXIMISATION, Goal.MINIMISATION]
 
     individual_params = []
     if task == Task.CLASSIFICATION:
-        for cls_idx in range(len(ftr._classes_order)):
-            # criterion ref_point nie ma znaczenia
-            # bo relation=always_satified
-            a = rng.choice(actions, 1)[0]
-            g = rng.choice(goals, 1)[0]
-            params = {'action': a, 'goal': g,
-                      'criterion_relation': always_satisfied,
+        for cls_idx in range(len(feature._classes_order)):
+            action = rng.choice(actions, 1)[0]
+            goal = rng.choice(goals, 1)[0]
+            # criterion_reference_value doesn't matter because the relation is always_satisfied
+            params = {'action': action, 'goal': goal, 'criterion_relation': always_satisfied,
+                      'criterion_reference_value': 0,
                       'derivation': RandomRule(),
                       'class_index': cls_idx,
-                      'class_name': ftr._classes_order[cls_idx],
-                      'criterion_reference_value': 0}
+                      'class_name': feature._classes_order[cls_idx],
+                      }
             individual_params.append(params)
 
     elif task == Task.REGRESSION:
         raise NotImplementedError  # Napisane na sucho, nigdy nie odpalone.
-        a = rng.choice(actions, 1)[0]
-        g = rng.choice(goals, 1)[0]
-        params = {'action': a, 'goal': g,
-                  'criterion_relation': always_satisfied,
+        action = rng.choice(actions, 1)[0]
+        goal = rng.choice(goals, 1)[0]
+        # criterion ref_point doesn't matter because the relation is always_satisfied
+        params = {'action': action, 'goal': goal, 'criterion_relation': always_satisfied,
+                  'criterion_reference_value': 0,
                   'derivation': RandomRule(),
-                  'class_index': None, 'class_name': None,
-                  'criterion_reference_value': 0}
+                  'class_index': None,
+                  'class_name': None,
+                  }
         individual_params.append(params)
     else:
         raise ValueError(TASK_ERROR_MSG(task))
