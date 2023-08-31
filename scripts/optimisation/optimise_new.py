@@ -36,19 +36,18 @@ check_unlogging = True  # always check unlogging of models
 pprint = True  # print all stats
 
 if __name__ == "__main__":
-
-    # ARGPARSE  # TODO: ustalić sensowniejszą kolejność argumentów
     parser = argparse.ArgumentParser()
     parser.add_argument('dataset', type=str)
     parser.add_argument('split', type=str)
-    parser.add_argument('fp', type=str)
-    parser.add_argument('task', type=str)
-    parser.add_argument('m1', type=str, help='model that delivers SHAPs for rule derivation')
+    parser.add_argument('fp', type=str, help='fingerprint')
+    parser.add_argument('task', type=str, help='task')
+    parser.add_argument('m1', type=str, help='source model that delivers SHAPs for rule derivation')
     parser.add_argument('mic', type=str, help='independent classifier for evaluation')
     parser.add_argument('mir', type=str, help='independent regression model for evaluation')
 
-    parser.add_argument('at_once', type=int)
-    parser.add_argument('n_times', type=int)
+    parser.add_argument('seed', type=int)
+    parser.add_argument('at_once', type=int, help='number of features modified at once')
+    parser.add_argument('n_times', type=int, help='number of times the rules are sampled')
     parser.add_argument('pf_ratio', type=float,
                         help='derive rules only for features which are present and absent in at least pf_ratio samples in the training set')
     parser.add_argument('ws_min_score', type=float,
@@ -61,36 +60,32 @@ if __name__ == "__main__":
     parser.add_argument('unimp_max_ratio', type=float,
                         help='maximal ratio of unimportant samples in features used to derive rules')
 
-    parser.add_argument('seed', type=int)
-    parser.add_argument('results_dir', type=str)
-    parser.add_argument('saving_dir', type=str)
+    parser.add_argument('results_dir', type=str, help='directory with trained models and SHAP values')
+    parser.add_argument('saving_dir', type=str, help='directory for saving the results')
+
+    parser.add_argument('--low', type=str, nargs='*', default=['low'],
+                        help='a list of rule groups to optimise samples of low stability, available groups: `low` (default), `med`, `high`, `all`')
+    parser.add_argument('--med', type=str, nargs='*', default=['med'],
+                        help='a list of rule groups to optimise samples of medium stability, available groups: `low`, `med` (default), `high`, `all`')
+    parser.add_argument('--high', type=str, nargs='*', default=['high'],
+                        help='a list of rule groups to optimise samples of high stability, available groups: `low`, `med`, `high` (default), `all`')
 
     parser.add_argument('--baseline', action='store_true',
                         help="derive random rules instead of rules based on SHAP values")
-    parser.add_argument('--no_contradictive', action='store_true', help="filter out contradictive rules")
     parser.add_argument('--skip_criterion_check', action='store_true',
                         help="only check feature value when selecting candidate rules")
     parser.add_argument('--update_shap', action='store_true', help='update SHAP values after updating the molecule')
-    parser.add_argument('--debug', action='store_true', help='optimise only three samples not all of them')
-
-
-    # TODO: poniższe argumenty trzeba dodać do opisu eksperymentu
+    parser.add_argument('--no_contradictive', action='store_true', help="filter out contradictive rules")
     parser.add_argument('--use_incorrect', action='store_true',
                         help='include samples for which prediction is incorrect in rule derivation')
 
-    parser.add_argument('--low', type=str, nargs='*', const='low', default='low',
-                        help='a list of rule groups to optimise samples of low stability, available groups: `low` (default), `med`, `high`, `all`')
-    parser.add_argument('--med', type=str, nargs='*', const='med', default='med',
-                        help='a list of rule groups to optimise samples of medium stability, available groups: `low`, `med` (default), `high`, `all`')
-    parser.add_argument('--high', type=str, nargs='*', const='high', default='high',
-                        help='a list of rule groups to optimise samples of high stability, available groups: `low`, `med`, `high` (default), `all`')
+    parser.add_argument('--debug', action='store_true', help='optimise only three samples not all of them')
 
     args = parser.parse_args()
 
-    # set seed
+    # set seed and random generator
     set_seed(args.seed)
     rng = get_random_generator()
-    seed = args.seed  # used later for saving results
 
     # define models
     task = Task(args.task)
@@ -100,25 +95,20 @@ if __name__ == "__main__":
     mic_origin = make_origin((args.dataset, args.split, args.fp, task.value, args.mic))
     mir_origin = make_origin((args.dataset, args.split, args.fp, task_reg.value, args.mir))
 
-    # define experiment setup
+    # experiment setup
     at_once = args.at_once
     n_times = args.n_times
 
     pf_ratio = args.pf_ratio
-
-    ws_min_score = args.ws_min_score
+    condition_ws = lambda x: condition_well_separated(x, args.ws_min_score)
     hi_params = {'gamma': args.hi_gamma, 'metric': args.hi_metric}
-    hi_min_score = args.hi_min_score
-    unimp_params = {'miu': args.unimp_miu, 'metric': args.unimp_metric}
-    unimp_max_ratio = args.unimp_max_ratio
-
-    condition_ws = lambda x: condition_well_separated(x, ws_min_score)  # hacksy
-    condition_hi = lambda x: condition_high_impact(x, hi_min_score)
+    condition_hi = lambda x: condition_high_impact(x, args.hi_min_score)
+    unimp_params = {'niu': args.unimp_miu, 'metric': args.unimp_metric}
 
     # in directory, out directory
     results_dir = args.results_dir
     saving_dir = args.saving_dir
-    expname = f'{int(time.time())}-{at_once}-{n_times}-{seed}'
+    expname = f'{int(time.time())}-{at_once}-{n_times}-{args.seed}'
     make_directory(saving_dir, expname)
     saving_dir = osp.join(saving_dir, expname)
 
@@ -132,7 +122,6 @@ if __name__ == "__main__":
     correct_only = not args.use_incorrect  # include samples for which prediction is incorrect in rule derivation
 
     # LOGGER
-    # setup logger (everything that goes through logger or stderr will be saved in a file and sent to stdout)
     timestamp = get_timestamp()
     logger_wrapper = LoggerWrapper(saving_dir)
     sys.stderr.write = logger_wrapper.log_errors
@@ -141,19 +130,27 @@ if __name__ == "__main__":
     logger_wrapper.logger.info(f'with params: {vars(args)}')
     pprint = logger_wrapper.logger.info if pprint else no_print
 
-    # # # # # # # #
-    # S K R Y P T #
-    # # # # # # # #
-
     # LOAD STUFF
-
     ml_m1 = find_experiment(results_dir, 'ml', m1_origin)
     shap_m1 = find_experiment(results_dir, 'shap', m1_origin)
 
-    train, test = load_train_test(ml_m1)
-    present_features = get_present_features(train[0], pf_ratio)
+    # source model
+    shapator, shap_giver = load_model(results_dir, m1_origin, check_unlogging)
+    shap_giver = shap_giver if update_shap else None
 
+    # evaluation classifier
+    mic, _ = load_model(results_dir, mic_origin, check_unlogging)
+    assert np.all(shapator.classes_ == mic.classes_), f"Classes order mismatch {shapator.classes_}!={mic.classes_}"
+
+    # evaluation regressor
+    mir, mir_unlogged = load_model(results_dir, mir_origin, check_unlogging)
+
+    # data and predictions
+    train, test = load_train_test(ml_m1)
     tr_preds, test_preds = load_predictions(ml_m1, task)
+
+    # PREPARE FEATURES AND SAMPLES
+    present_features = get_present_features(train[0], pf_ratio)
 
     if correct_only:
         train_smi = get_correct_predictions(tr_preds, task)
@@ -172,10 +169,9 @@ if __name__ == "__main__":
 
     #####
     low, med, high = groups_train_samples
-    alles = sorted(tr_preds.index.tolist())
-    rule_groups = {'low': low, 'med': med, 'high': high, 'all': alles}
+    rule_groups = {'low': low, 'med': med, 'high': high, 'all': sorted(tr_preds.index.tolist())}
 
-    assert all([rg in rule_groups.keys() for rg in args.low+args.med+args.high]),\
+    assert all([rg in rule_groups.keys() for rg in args.low + args.med + args.high]), \
         f"Available rule groups are: `low`, `med`, `high`, `all`, given: {args.low, args.med, args.high}"
 
     for_low = [(rule_groups[rg], rg) for rg in args.low]
@@ -189,24 +185,10 @@ if __name__ == "__main__":
     group_test_names = ['unstable', 'medium', 'stable']
 
     shap_smis, shap_x, shap_true_ys, classes_order, shap_vals = load_shap_files(shap_m1, task, check_unlogging)
-    assert np.all(classes_order == [0, 1, 2]), NotImplementedError(
-        "Musimy sklepać reindeksowanie jak classes order jest inny niż domyślny")
+    assert np.all(classes_order == [0, 1, 2]), NotImplementedError("Classes order is different than default.")
 
-    # model, który liczył SHAPy
-    shapator, shap_giver = load_model(results_dir, m1_origin, check_unlogging)
-    if not update_shap:
-        shap_giver = None
-
-    # niezależny model
-    mic, _ = load_model(results_dir, mic_origin, check_unlogging)
-    assert np.all(
-        shapator.classes_ == mic.classes_), f"Classes order mismatch {shapator.classes_}!={mic.classes_}"
-
-    # regressor
-    mir, mir_unlogged = load_model(results_dir, mir_origin, check_unlogging)
-
+    # # # # # #
     # DO THINGS
-
     group_scores = {}
 
     # for group_tr, group_te, name_tr, name_te in zip(groups_train_samples, groups_test_samples, group_train_names,
@@ -217,13 +199,13 @@ if __name__ == "__main__":
     for tr, group_te, name_te in zip(groups_train, groups_test_samples, group_test_names):
         for group_tr, name_tr in tr:
             logger_wrapper.logger.info(f"{name_te} samples will be optimised with rules derived on {name_tr}")
-    ####
+            ####
 
             # # # # # # # # # # # # # # # # #
             # C R E A T E   F E A T U R E S #
             # # # # # # # # # # # # # # # # #
-            tr_smis = intersection_list(train_smi, group_tr)  # wybieramy smilesy
-            tr_smis = index_of_smiles(shap_smis, tr_smis)  # bierzemy ich indeksy
+            tr_smis = intersection_list(train_smi, group_tr)  # select smiles
+            tr_smis = index_of_smiles(shap_smis, tr_smis)     # get their indices
             my_features = make_features(present_features, tr_smis, shap_x, shap_vals, classes_order, m1_origin, task)
 
             # # # # # # # # # # # # # #
@@ -261,7 +243,7 @@ if __name__ == "__main__":
                 rules_conditioned = rule_stats(my_rules, print_func=pprint)
 
             # filtering out unimportant
-            my_rules = filter_out_unimportant(my_rules, my_features, unimp_params, unimp_max_ratio, task=task)
+            my_rules = filter_out_unimportant(my_rules, my_features, unimp_params, args.unimp_max_ratio, task=task)
             pprint('After filtering out unimportant rules')
             rules_importante = rule_stats(my_rules, print_func=pprint)
 
@@ -282,7 +264,7 @@ if __name__ == "__main__":
                             'rules_noncontradictive': rules_noncontradictive}
             d = [rula.as_dict() for rula in my_rules]
             rules_df = pd.DataFrame.from_dict(d)
-            rules_df.to_csv(osp.join(saving_dir, f'{timestamp}-{name_tr}-rules.csv'))  # TODO: można dodać info o tym dla jakich sampli
+            rules_df.to_csv(osp.join(saving_dir, f'{timestamp}-{name_te}-samples-{name_tr}-rules.csv'))
 
             # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # # #
             # C R E A T E   S A M P L E S   F O R   O P T I M I S A T I O N #
@@ -291,8 +273,8 @@ if __name__ == "__main__":
                                    (test_incorrect_smi, 'incorrectly_predicted')):
                 logger_wrapper.logger.info(f'Optimisation of {c_name} {name_te} compounds')
 
-                te_smis = intersection_list(c_smis, group_te)  # wybieramy smilesy
-                te_smis = index_of_smiles(shap_smis, te_smis)  # bierzemy ich indeksy
+                te_smis = intersection_list(c_smis, group_te)  # select smiles
+                te_smis = index_of_smiles(shap_smis, te_smis)  # get their indices
                 my_samples = make_samples(te_smis, shap_x, shap_vals, shap_smis, m1_origin, classes_order, task)
                 assert len(my_samples) == len(te_smis)
 
@@ -302,33 +284,35 @@ if __name__ == "__main__":
                 if debug:
                     my_samples = my_samples[:3]
                 optimise(my_samples, my_rules, at_once=at_once, n_times=n_times,
-                         update_shap=shap_giver, skip_criterion_check=skip_criterion_check,
+                         shap_calculator=shap_giver, skip_criterion_check=skip_criterion_check,
                          extended_history=True)
 
                 # # # # # # # # # #
                 # E V A L U A T E #
                 # # # # # # # # # #
                 samples_to_evaluate = [s for s in my_samples if s.number_of_applied_changes() > 0]
+                # TODO: rename opis_exp
                 opis_exp = optimisation_stats(present_features, my_rules, my_samples, samples_to_evaluate,
                                               print_func=pprint)
 
                 scores = {}
                 for model, model_name, model_task in ((shapator, 'shapator', task), (mic, 'independent', task),
-                                                      (mir, 'regressor_logged', task_reg), (mir_unlogged, 'regressor_unlogged', task_reg)):
+                                                      (mir, 'regressor_logged', task_reg),
+                                                      (mir_unlogged, 'regressor_unlogged', task_reg)):
 
-                    my_scores = evaluate_stability_optimisation(samples_to_evaluate, model, model_task, print_func=pprint)
-                    if task == Task.CLASSIFICATION:
+                    my_scores = evaluate_stability_optimisation(samples_to_evaluate, model, model_task,
+                                                                print_func=pprint)
+                    if model_task == Task.CLASSIFICATION:
                         scores[f"{model_name}_unstable"] = my_scores[0]
                         scores[f"{model_name}_stable"] = my_scores[1]
-                    elif task == Task.REGRESSION:
+                    elif model_task == Task.REGRESSION:
                         scores[model_name] = my_scores
                     else:
-                        raise ValueError(TASK_ERROR_MSG(task))
+                        raise ValueError(TASK_ERROR_MSG(model_task))
 
                     df = get_history(samples_to_evaluate, model, model_task)
                     df.to_csv(
                         osp.join(saving_dir, f'{timestamp}-history-R-{name_tr}-S-{name_te}-{c_name}-{model_name}.csv'))
-
 
                 # # na razie modelem, który liczył shapy
                 # shapator_scores_class_unstable, shapator_scores_class_stable = evaluate_stability_optimisation(samples_for_evaluation,
@@ -374,18 +358,20 @@ if __name__ == "__main__":
                 group_results.update(rule_history)
                 group_scores[f'R-{name_tr}-S-{name_te}-{c_name}_scores'] = group_results
 
-    results = {'shapator': m1_origin._asdict(),
-               'independator': mic_origin._asdict(),
-               'regressor': mir_origin._asdict(),
-               'at_once': at_once, 'n_times': n_times,
-               'pf_ratio': pf_ratio,
-               'ws_min_score': ws_min_score,
-               'hi_params': hi_params, 'hi_min_score': hi_min_score,
-               'unimp_params': unimp_params, 'unimp_max_ratio': unimp_max_ratio,
-               'seed': seed, 'results_dir': results_dir, 'timestamp': timestamp,
-               'baseline': baseline, 'no_contradictive': no_contradictive,
-               'skip_criterion_check': skip_criterion_check, 'update_shap': update_shap,
-               'check_unlogging': check_unlogging, 'debug': debug
+    # TODO: rename fields
+    #                                                                                     # source model and evaluators
+    results = {'shapator': m1_origin._asdict(), 'independator': mic_origin._asdict(), 'regressor': mir_origin._asdict(),
+               'at_once': at_once, 'n_times': n_times,                                    # number of modifications
+               'low': args.low, 'med': args.med, 'high': args.high,                       # groups of rules
+               'baseline': baseline,                                                      # random rules?
+               'pf_ratio': pf_ratio,                                                      # rules' params
+               'ws_min_score': args.ws_min_score,
+               'hi_params': hi_params, 'hi_min_score': args.hi_min_score,
+               'unimp_params': unimp_params, 'unimp_max_ratio': args.unimp_max_ratio,
+               'skip_criterion_check': skip_criterion_check, 'update_shap': update_shap,  # SHAP-involving params
+               'no_contradictive': no_contradictive, 'correct_only': correct_only,        # other params
+               'seed': args.seed, 'results_dir': results_dir, 'timestamp': timestamp,     # identifiers
+               'check_unlogging': check_unlogging, 'debug': debug                         # insurance
                }
     results.update(group_scores)
     save_as_json(results, saving_dir, 'stats.json')

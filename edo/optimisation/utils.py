@@ -199,7 +199,7 @@ def group_samples(df, task, n_groups=None):
     """
     if task == Task.CLASSIFICATION:
         n_groups = 1 + df.true.max() if n_groups is None else n_groups
-        groups = (sorted(df[df.true == i].index.tolist()) for i in range(n_groups))
+        groups = [sorted(df[df.true == i].index.tolist()) for i in range(n_groups)]
     elif task == Task.REGRESSION:
         raise NotImplementedError
     else:
